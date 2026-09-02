@@ -76,20 +76,18 @@ Write-Ok "All packages ready"
 Write-Step "Setting up admin login..."
 
 $envFile = "$ProjectRoot\.env"
-if (-not (Test-Path $envFile)) {
-    $envContent = @(
-        "PORT=3000"
-        "NODE_ENV=production"
-        "PUBLIC_URL=https://nexusitacad.niyamstack.com"
-        "ADMIN_USERNAME=NexusITAcademy"
-        "ADMIN_PASSWORD=GaurHari@109"
-        "SESSION_SECRET=nexus-niyamstack-prod-secret-2026"
-    ) -join "`n"
-    Set-Content -Path $envFile -Value $envContent -Encoding ASCII
-    Write-Ok "Admin login created"
-} else {
-    Write-Ok "Admin login already set"
-}
+$envContent = @(
+    "PORT=3000"
+    "NODE_ENV=development"
+    "LOCAL_DEV=true"
+    "PUBLIC_URL=http://localhost:3000"
+    "ADMIN_USERNAME=NexusITAcademy"
+    "ADMIN_PASSWORD=GaurHari@109"
+    "SESSION_SECRET=nexus-niyamstack-prod-secret-2026"
+) -join "`n"
+Set-Content -Path $envFile -Value $envContent -Encoding ASCII -NoNewline
+Add-Content -Path $envFile -Value "" -Encoding ASCII
+Write-Ok "Admin login ready"
 
 # Step 4: Stop old copy if running
 Write-Step "Starting website..."
