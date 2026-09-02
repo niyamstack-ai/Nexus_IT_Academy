@@ -1,0 +1,56 @@
+NEXUS IT ACADEMY — HOW TO USE (Simple Guide)
+=============================================
+
+You only need to know how to open PowerShell (or just double-click a file).
+
+
+STEP 1 — START THE WEBSITE
+--------------------------
+Double-click this file:
+
+    START-NEXUS.bat
+
+That's it! Your browser will open automatically with:
+  - Your website
+  - Admin panel
+
+First time may take 2-3 minutes (installs needed software once).
+
+
+STEP 2 — LOGIN TO ADMIN
+-----------------------
+When admin page opens, use:
+
+    Admin ID:       NexusITAcademy
+    Password:       GaurHari@109
+
+From admin you can change:
+  - "100+ Placement" numbers
+  - Alumni photos
+  - Register / Login links
+  - Colors, fonts, themes
+  - Everything on the website
+
+Click "Save & Publish" after making changes.
+
+
+STEP 3 — STOP THE WEBSITE (optional)
+------------------------------------
+Double-click:
+
+    STOP-NEXUS.bat
+
+
+YOUR LIVE WEBSITE (on internet)
+-------------------------------
+After Niyamstack team connects the server:
+
+    Website:  https://nexusitacad.niyamstack.com/
+    Admin:    https://nexusitacad.niyamstack.com/admin/
+
+Same login ID and password as above.
+
+
+NEED HELP?
+----------
+If START-NEXUS.bat shows an error, take a screenshot and send to your developer.

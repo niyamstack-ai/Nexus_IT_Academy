@@ -2,7 +2,15 @@
 
 Dynamic coaching website with a full **admin panel** to update content, links, alumni stories, themes, colors, and fonts — without touching code.
 
-## Quick Start
+## Quick Start (non-technical — just double-click)
+
+1. Double-click **`START-NEXUS.bat`** in the project folder
+2. Browser opens automatically — website + admin panel
+3. Login with your Admin ID and password (see `HOW-TO-USE.txt`)
+
+To stop: double-click **`STOP-NEXUS.bat`**
+
+## Quick Start (developers)
 
 ```bash
 npm install
