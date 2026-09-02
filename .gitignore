@@ -2,5 +2,3 @@ source.html
 node_modules/
 data/site.json
 .env
-public/uploads/*
-!public/uploads/.gitkeep

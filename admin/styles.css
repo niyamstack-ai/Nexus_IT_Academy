@@ -556,7 +556,56 @@ input:focus, textarea:focus, select:focus {
   .field-grid-2 { grid-template-columns: 1fr; }
 }
 
+.menu-toggle { display: none; }
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 150;
+}
+
 @media (max-width: 768px) {
   .app { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
+  .menu-toggle { display: inline-flex; }
+
+  .sidebar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(280px, 85vw);
+    z-index: 200;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .editor-panel {
+    padding: 12px;
+  }
+
+  .list-item {
+    flex-direction: column;
+  }
+
+  .crop-modal-card {
+    padding: 16px;
+  }
 }

@@ -152,8 +152,19 @@ function renderNav() {
       activeSection = btn.dataset.section;
       renderNav();
       renderEditor();
+      closeMobileMenu();
     });
   });
+}
+
+function closeMobileMenu() {
+  $("#sidebar")?.classList.remove("open");
+  $("#sidebar-backdrop")?.classList.add("hidden");
+}
+
+function openMobileMenu() {
+  $("#sidebar")?.classList.add("open");
+  $("#sidebar-backdrop")?.classList.remove("hidden");
 }
 
 function listField(label, items, fields, onChange) {
@@ -286,6 +297,7 @@ function renderEditor() {
           <button type="button" class="btn btn-secondary" data-goto="navigation">Edit Register/Login Links</button>
           <button type="button" class="btn btn-secondary" data-goto="domain">Connect Custom Domain</button>
           <button type="button" class="btn btn-secondary" data-goto="themes">Change Theme</button>
+          <button type="button" class="btn btn-primary" id="localize-images-btn">Save all images to our server</button>
         </div>
       </div>`;
   }
@@ -561,7 +573,25 @@ function renderEditor() {
       activeSection = btn.dataset.goto;
       renderNav();
       renderEditor();
+      closeMobileMenu();
     });
+  });
+
+  $("#localize-images-btn")?.addEventListener("click", async () => {
+    const btn = $("#localize-images-btn");
+    btn.disabled = true;
+    btn.textContent = "Saving images...";
+    try {
+      const res = await api("/api/admin/localize-images", { method: "POST", body: "{}" });
+      site = res.site;
+      showToast("All images saved on our server (old links no longer needed)");
+      renderEditor();
+      refreshPreview();
+    } catch (e) {
+      showToast(e.message, "error");
+      btn.disabled = false;
+      btn.textContent = "Save all images to our server";
+    }
   });
 }
 
@@ -629,6 +659,9 @@ $("#refresh-preview").addEventListener("click", refreshPreview);
 $("#preview-toggle").addEventListener("click", () => {
   document.querySelector(".workspace-body").classList.toggle("preview-hidden");
 });
+
+$("#menu-toggle")?.addEventListener("click", openMobileMenu);
+$("#sidebar-backdrop")?.addEventListener("click", closeMobileMenu);
 
 checkAuth();
 window.showToast = showToast;

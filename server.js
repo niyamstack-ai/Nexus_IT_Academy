@@ -11,7 +11,7 @@ const { getSite, saveSite, resetSite } = require("./lib/store");
 const { renderSite } = require("./lib/renderer");
 const { THEME_PRESETS, FONT_OPTIONS } = require("./lib/themes");
 const { buildDnsRecords, buildNginxConfig, buildSetupSteps, isValidIpv4 } = require("./lib/domain");
-const { IMAGE_PRESETS, ensureUploadDir, processAndSaveImage } = require("./lib/images");
+const { IMAGE_PRESETS, ensureUploadDir, processAndSaveImage, localizeSiteImages } = require("./lib/images");
 
 const app = express();
 const PORT = Number(envValue("PORT", "3000")) || 3000;
@@ -122,6 +122,17 @@ app.post("/api/admin/upload", requireAuth, async (req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(400).json({ error: err.message || "Upload failed" });
+  }
+});
+
+app.post("/api/admin/localize-images", requireAuth, async (req, res) => {
+  try {
+    const current = getSite();
+    const localized = await localizeSiteImages(current);
+    saveSite(localized);
+    res.json({ ok: true, site: localized });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Could not save images locally" });
   }
 });
 
