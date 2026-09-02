@@ -151,7 +151,7 @@
   },
   "domain": {
     "customDomain": "nexusitacad.com",
-    "serverIp": "",
+    "serverIp": "51.79.167.187",
     "stagingUrl": "https://nexusitacad.niyamstack.com",
     "liveSubdomain": "nexusitacad.niyamstack.com",
     "appPort": 3000,

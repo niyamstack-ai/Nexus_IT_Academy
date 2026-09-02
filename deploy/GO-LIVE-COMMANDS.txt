@@ -1,0 +1,72 @@
+# STEP-BY-STEP: Make website LIVE
+# Your DNS is already set:
+#   nexusitacad.niyamstack.com  ->  A  ->  51.79.167.187
+
+# ============================================================
+# STEP 1 - Open PowerShell on your computer
+# ============================================================
+# Copy ONE command at a time, paste, press Enter.
+
+# Login to your server (it will ask for your SERVER password):
+ssh root@51.79.167.187
+
+# If root does not work, try:
+# ssh ubuntu@51.79.167.187
+
+
+# ============================================================
+# STEP 2 - After you are inside the server, paste ALL of this
+# ============================================================
+
+sudo apt-get update -y
+sudo apt-get install -y curl git nginx
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo npm install -g pm2
+
+sudo mkdir -p /var/www/nexus-it-academy
+cd /var/www/nexus-it-academy
+
+if [ -d .git ]; then
+  sudo git pull origin main
+else
+  sudo git clone https://github.com/niyamstack-ai/Nexus_IT_Academy.git .
+fi
+
+sudo npm install --no-fund --no-audit
+
+sudo tee .env > /dev/null <<'EOF'
+PORT=3000
+NODE_ENV=production
+PUBLIC_URL=https://nexusitacad.niyamstack.com
+ADMIN_USERNAME=NexusITAcademy
+ADMIN_PASSWORD=GaurHari@109
+SESSION_SECRET=nexus-niyamstack-prod-2026
+EOF
+
+sudo pm2 delete nexus-cms 2>/dev/null || true
+sudo pm2 start deploy/ecosystem.config.cjs
+sudo pm2 save
+sudo pm2 startup systemd -u root --hp /root
+
+sudo cp deploy/nexusitacad.niyamstack.com.nginx /etc/nginx/sites-available/nexusitacad.niyamstack.com
+sudo ln -sf /etc/nginx/sites-available/nexusitacad.niyamstack.com /etc/nginx/sites-enabled/nexusitacad.niyamstack.com
+sudo nginx -t
+sudo systemctl reload nginx
+
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d nexusitacad.niyamstack.com --non-interactive --agree-tos -m hi@nexusitacad.com || true
+
+echo "DONE"
+echo "Website: https://nexusitacad.niyamstack.com/"
+echo "Admin:   https://nexusitacad.niyamstack.com/admin/"
+
+
+# ============================================================
+# STEP 3 - Open in browser
+# ============================================================
+# https://nexusitacad.niyamstack.com/
+# https://nexusitacad.niyamstack.com/admin/
+#
+# Admin ID: NexusITAcademy
+# Password: GaurHari@109
