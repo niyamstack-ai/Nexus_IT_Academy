@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nexus Admin — Website Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+  <div id="login-screen" class="login-screen">
+    <form id="login-form" class="login-card">
+      <div class="login-brand">
+        <div class="login-logo">N</div>
+        <h1>Nexus Admin</h1>
+        <p>Website Builder & Content Manager</p>
+      </div>
+      <label>
+        <span>Admin Password</span>
+        <input type="password" id="login-password" required autocomplete="current-password" placeholder="Enter admin password">
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+      <p id="login-error" class="form-error hidden"></p>
+    </form>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <strong>Nexus</strong>
+        <span>Website Builder</span>
+      </div>
+      <nav class="sidebar-nav" id="sidebar-nav"></nav>
+      <div class="sidebar-footer">
+        <a href="/" target="_blank" class="btn btn-ghost btn-block">View Live Site ↗</a>
+        <button type="button" id="logout-btn" class="btn btn-ghost btn-block">Logout</button>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div>
+          <h2 id="panel-title">Dashboard</h2>
+          <p id="panel-desc" class="topbar-desc">Manage your coaching website content</p>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" id="preview-toggle" class="btn btn-secondary">Preview</button>
+          <button type="button" id="reset-btn" class="btn btn-secondary">Reset Defaults</button>
+          <button type="button" id="save-btn" class="btn btn-primary">Save & Publish</button>
+        </div>
+      </header>
+
+      <div class="workspace-body">
+        <main id="editor-panel" class="editor-panel"></main>
+        <aside id="preview-panel" class="preview-panel">
+          <div class="preview-header">
+            <span>Live Preview</span>
+            <button type="button" id="refresh-preview" class="btn btn-ghost btn-sm">Refresh</button>
+          </div>
+          <iframe id="preview-frame" src="/preview" title="Site preview"></iframe>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/admin/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "nexus-it-academy-cms",
+  "version": "1.0.0",
+  "description": "Nexus IT Academy website with admin builder",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}

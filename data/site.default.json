@@ -1,0 +1,153 @@
+{
+  "siteName": "Nexus IT Academy",
+  "meta": {
+    "title": "Nexus IT Academy",
+    "description": "A Genuine Pay After Placement IT Consultancy - Nexus IT Academy"
+  },
+  "logo": "https://nexusitacad.com/cdn/shop/files/NEXUS_1_1.png?v=1788262269&width=500",
+  "footerLogo": "https://nexusitacad.com/cdn/shop/files/NEXUS_6_1.png?v=1788289931&width=520",
+  "ticker": {
+    "enabled": true,
+    "speed": 75,
+    "items": [
+      "🏬 50+ Hiring Partners",
+      "🧑‍🎓 100+ Genuine Placement",
+      "💰 10 LPA Average Placement"
+    ]
+  },
+  "navigation": {
+    "register": {
+      "label": "Register",
+      "url": "https://qlisen.courses.store",
+      "enabled": false,
+      "openInNewTab": true
+    },
+    "login": {
+      "label": "Login Training Program",
+      "url": "https://web.classplusapp.com/login?orgCode=qlisen",
+      "enabled": false,
+      "openInNewTab": true
+    }
+  },
+  "hero": {
+    "headline": "A Genuine Pay After Placement IT Consultancy",
+    "features": [
+      "1 on 1 Live Interview Training",
+      "Strong Resume & Dealing with Career Gaps",
+      "Direct interview scheduling with Partner MNCs – Your Unfair Advantage.",
+      "From Training to Placement – Your Success Is our Responsibility."
+    ]
+  },
+  "hiringPartners": {
+    "title": "Our Hiring Partners",
+    "logos": [
+      { "url": "https://nexusitacad.com/cdn/shop/files/LTIMindtree_Logo_svg.png?v=1788289304&width=400", "alt": "LTIMindtree" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/images-removebg-preview.png?v=1788289304&width=400", "alt": "Partner" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/Persistent_Systems_Logo_svg.png?v=1788289304&width=400", "alt": "Persistent" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/Infosys_logo_svg.png?v=1788289304&width=400", "alt": "Infosys" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/logo-removebg-preview.png?v=1788289304&width=400", "alt": "Partner" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/WNS_Global_Services_Logo_svg.png?v=1788289304&width=400", "alt": "WNS" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/HCL_Technologies-Logo.wine.png?v=1788289304&width=400", "alt": "HCL" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/Accenture_logo.svg?v=1788289304&width=400", "alt": "Accenture" }
+    ]
+  },
+  "alumni": {
+    "title": "Success Stories From Our Students",
+    "autoplaySeconds": 5,
+    "items": [
+      { "image": "https://nexusitacad.com/cdn/shop/files/1.png?v=1788289687&width=1200", "alt": "Success story 1" },
+      { "image": "https://nexusitacad.com/cdn/shop/files/5.png?v=1788289637&width=1200", "alt": "Success story 2" },
+      { "image": "https://nexusitacad.com/cdn/shop/files/4.png?v=1788289687&width=1200", "alt": "Success story 3" },
+      { "image": "https://nexusitacad.com/cdn/shop/files/Ayan_2.jpg?v=1788289471&width=1200", "alt": "Ayan success story" },
+      { "image": "https://nexusitacad.com/cdn/shop/files/3.png?v=1788289687&width=1200", "alt": "Success story 5" }
+    ]
+  },
+  "journey": {
+    "title": "🏆 Your Journey At Nexus IT",
+    "steps": [
+      {
+        "title": "Step 1 | Screening Round",
+        "description": "‼️ Admission to our program is selective - Only those who clear Screening Process can Enroll",
+        "icon": "https://nexusitacad.com/cdn/shop/files/filter.png?v=1788289779"
+      },
+      {
+        "title": "Step 2 | Training",
+        "description": "All your Training, Tests, and Mock Interview — available on our Learning App.",
+        "icon": "https://nexusitacad.com/cdn/shop/files/online-learning.png?v=1788289780"
+      },
+      {
+        "title": "Step 3 | Interview Scheduling",
+        "description": "Connecting you with our Placement Partners - Your Unfair Advantage",
+        "icon": "https://nexusitacad.com/cdn/shop/files/interview.png?v=1788289780"
+      },
+      {
+        "title": "Final Step | Placement",
+        "description": "We Guarantee 10+ LPA Placement to our Learners",
+        "icon": "https://nexusitacad.com/cdn/shop/files/new-job.png?v=1788289780"
+      }
+    ]
+  },
+  "placementGuarantee": {
+    "title": "100 Days Placement Guarantee",
+    "subtitle": "Post Completion of Training & Mock Interview"
+  },
+  "jobProfiles": {
+    "title": "Successfully Placing In Various Job Profile",
+    "items": [
+      "1. SAP SD | MM | FICO",
+      "2. Major Incident Manager",
+      "3. Scrum Master"
+    ]
+  },
+  "feeStructure": {
+    "title": "Fee Structure",
+    "subtitle": "The Most Asked Question. Answered with Full Transparency. Nothing to Hide",
+    "totalLabel": "Total Fees : 20% of the CTC",
+    "steps": [
+      {
+        "label": "Registration Amount",
+        "title": "Rs. 2000",
+        "description": "The Only amount you pay before getting a Job."
+      },
+      {
+        "label": "First Payment",
+        "title": "After Placement & Receiving Offer Letter",
+        "description": "5% of the CTC you will be offered by the Company"
+      },
+      {
+        "label": "Remaining Fees",
+        "title": "From the Salary in Easy Instalments",
+        "description": "15% of the CTC"
+      }
+    ]
+  },
+  "contact": {
+    "title": "Get In Touch With Us",
+    "address": "301, Lane No. 7, Tilekar Nagar Katraj | Pune | 411037",
+    "phone": "+91 87888 21351",
+    "email": "Hi@NexusITacad.com"
+  },
+  "footerPartners": {
+    "title": "Top Hiring Partners",
+    "logos": [
+      { "url": "https://nexusitacad.com/cdn/shop/files/HCL_Technologies-Logo.wine.png?v=1788289304&width=400", "alt": "HCL" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/free-sap-logo-icon-svg-download-png-2945134.webp?v=1788289304&width=400", "alt": "SAP" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/Accenture_logo.svg?v=1788289304&width=400", "alt": "Accenture" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/ibm_PNG19658.png?v=1788290166&width=400", "alt": "IBM" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/WNS_Global_Services_Logo_svg.png?v=1788289304&width=400", "alt": "WNS" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/L_T.png?v=1788289304&width=400", "alt": "L&T" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/Persistent_Systems_Logo_svg.png?v=1788289304&width=400", "alt": "Persistent" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/LTIMindtree_Logo_svg.png?v=1788289304&width=400", "alt": "LTIMindtree" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/Infosys_logo_svg.png?v=1788289304&width=400", "alt": "Infosys" },
+      { "url": "https://nexusitacad.com/cdn/shop/files/pngimg.com_-_intel_PNG19.png?v=1788289304&width=400", "alt": "Intel" }
+    ]
+  },
+  "theme": {
+    "presetId": "nexus-classic",
+    "custom": {
+      "fontPreset": "roboto-condensed",
+      "colors": {}
+    }
+  },
+  "updatedAt": null
+}

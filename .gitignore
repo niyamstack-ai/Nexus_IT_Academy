@@ -1,1 +1,4 @@
 source.html
+node_modules/
+data/site.json
+.env
