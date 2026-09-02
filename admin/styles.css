@@ -447,6 +447,109 @@ input:focus, textarea:focus, select:focus {
   white-space: pre-wrap;
 }
 
+.image-upload-field {
+  margin-bottom: 16px;
+}
+
+.image-upload-field .field-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.image-preview-box {
+  width: 100%;
+  max-width: 280px;
+  min-height: 80px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 8px;
+  background: var(--surface-2);
+}
+
+.image-preview-box img {
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+}
+
+.image-placeholder {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.image-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.image-url-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.crop-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.crop-modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.crop-preview-wrap {
+  max-height: 360px;
+  margin: 16px 0;
+  background: #111;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.crop-preview-wrap img {
+  max-width: 100%;
+  display: block;
+}
+
+.crop-file-label {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.crop-file-label input[type="file"] {
+  margin-top: 6px;
+  width: 100%;
+}
+
+.crop-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1100px) {
   .workspace-body { grid-template-columns: 1fr; }
   .preview-panel { display: none; }

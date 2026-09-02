@@ -11,6 +11,7 @@ const { getSite, saveSite, resetSite } = require("./lib/store");
 const { renderSite } = require("./lib/renderer");
 const { THEME_PRESETS, FONT_OPTIONS } = require("./lib/themes");
 const { buildDnsRecords, buildNginxConfig, buildSetupSteps, isValidIpv4 } = require("./lib/domain");
+const { IMAGE_PRESETS, ensureUploadDir, processAndSaveImage } = require("./lib/images");
 
 const app = express();
 const PORT = Number(envValue("PORT", "3000")) || 3000;
@@ -23,7 +24,7 @@ const isLocalDev = envValue("LOCAL_DEV", "false") === "true" || PUBLIC_URL.inclu
 
 app.set("trust proxy", 1);
 
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "12mb" }));
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -39,7 +40,10 @@ app.use(
 );
 
 app.use("/assets", express.static(path.join(__dirname, "public", "assets")));
+app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/admin", express.static(path.join(__dirname, "admin")));
+
+ensureUploadDir();
 
 function requireAuth(req, res, next) {
   if (req.session?.authenticated) return next();
@@ -104,6 +108,21 @@ app.get("/api/admin/domain/setup", requireAuth, (req, res) => {
     stagingUrl: site.domain?.stagingUrl || PUBLIC_URL,
     adminUrl: `${(site.domain?.stagingUrl || PUBLIC_URL).replace(/\/$/, "")}/admin`
   });
+});
+
+app.get("/api/admin/image-presets", requireAuth, (req, res) => {
+  res.json({ presets: IMAGE_PRESETS });
+});
+
+app.post("/api/admin/upload", requireAuth, async (req, res) => {
+  try {
+    const { image, preset } = req.body || {};
+    if (!image) return res.status(400).json({ error: "No image provided" });
+    const result = await processAndSaveImage(image, preset || "partnerLogo");
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message || "Upload failed" });
+  }
 });
 
 app.post("/api/admin/domain/validate", requireAuth, (req, res) => {

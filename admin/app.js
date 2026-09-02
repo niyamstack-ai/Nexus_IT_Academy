@@ -169,6 +169,15 @@ function listField(label, items, fields, onChange) {
       fieldsDiv.className = "list-item-fields";
 
       fields.forEach((f) => {
+        if (f.type === "image") {
+          const imgField = createImageField(f.label, item[f.key] || "", f.preset || "partnerLogo", (url) => {
+            item[f.key] = url;
+            onChange();
+          });
+          fieldsDiv.appendChild(imgField);
+          return;
+        }
+
         const lbl = document.createElement("label");
         lbl.innerHTML = `<span>${f.label}</span>`;
         const input = document.createElement(f.type === "textarea" ? "textarea" : "input");
@@ -330,14 +339,19 @@ function renderEditor() {
   if (activeSection === "settings") {
     html = `<div class="card"><h3>Site Settings</h3>
       ${field("Site name", site.siteName, "text", "site-name")}
-      ${field("Logo URL", site.logo, "url", "site-logo")}
-      ${field("Footer logo URL", site.footerLogo, "url", "footer-logo")}
+      <div id="wrap-site-logo"></div>
+      <div id="wrap-footer-logo"></div>
       ${field("Page title (SEO)", site.meta?.title, "text", "meta-title")}
       ${field("Meta description", site.meta?.description, "textarea", "meta-desc")}
     </div>`;
   }
 
   editor.innerHTML = html;
+
+  if (activeSection === "settings") {
+    $("#wrap-site-logo")?.appendChild(createImageField("Site Logo (upload and crop)", site.logo, "logo", (v) => { site.logo = v; }));
+    $("#wrap-footer-logo")?.appendChild(createImageField("Footer Logo (upload and crop)", site.footerLogo, "footerLogo", (v) => { site.footerLogo = v; }));
+  }
 
   // Sections with dynamic list editors
   if (activeSection === "partners") {
@@ -347,7 +361,7 @@ function renderEditor() {
     editor.appendChild(card);
     bindField("hp-title", (v) => { site.hiringPartners.title = v; });
     const list = listField("Logo", site.hiringPartners.logos, [
-      { key: "url", label: "Logo image URL" },
+      { key: "url", label: "Company logo", type: "image", preset: "partnerLogo" },
       { key: "alt", label: "Company name (alt text)" }
     ], () => {});
     card.appendChild(list);
@@ -358,11 +372,11 @@ function renderEditor() {
     card.className = "card";
     card.innerHTML = `<h3>Alumni / Success Stories</h3>
       ${field("Carousel speed (seconds)", site.alumni?.autoplaySeconds || 5, "number", "alumni-speed")}
-      <p class="card-desc">Add or remove success story images. Upload images to your CDN/host and paste URLs here.</p>`;
+      <p class="card-desc">Upload success story photos. Images are auto-cropped and compressed for fast loading.</p>`;
     editor.appendChild(card);
     bindField("alumni-speed", (v) => { site.alumni.autoplaySeconds = parseInt(v, 10) || 5; });
     const list = listField("Story", site.alumni.items, [
-      { key: "image", label: "Image URL" },
+      { key: "image", label: "Photo", type: "image", preset: "alumni" },
       { key: "alt", label: "Caption / student name" }
     ], () => {});
     card.appendChild(list);
@@ -377,7 +391,7 @@ function renderEditor() {
     const list = listField("Step", site.journey.steps, [
       { key: "title", label: "Step title" },
       { key: "description", label: "Description", type: "textarea" },
-      { key: "icon", label: "Icon image URL" }
+      { key: "icon", label: "Step icon", type: "image", preset: "journeyIcon" }
     ], () => {});
     card.appendChild(list);
   }
@@ -421,7 +435,7 @@ function renderEditor() {
     editor.appendChild(card2);
     bindField("fp-title", (v) => { site.footerPartners.title = v; });
     const list = listField("Logo", site.footerPartners.logos, [
-      { key: "url", label: "Logo URL" },
+      { key: "url", label: "Partner logo", type: "image", preset: "partnerLogo" },
       { key: "alt", label: "Alt text" }
     ], () => {});
     card2.appendChild(list);
@@ -536,8 +550,6 @@ function renderEditor() {
     "jobs-title": (v) => { site.jobProfiles.title = v; },
     "jobs-items": (v) => { site.jobProfiles.items = linesToArray(v); },
     "site-name": (v) => { site.siteName = v; site.meta.title = v; },
-    "site-logo": (v) => { site.logo = v; },
-    "footer-logo": (v) => { site.footerLogo = v; },
     "meta-title": (v) => { site.meta.title = v; },
     "meta-desc": (v) => { site.meta.description = v; }
   };
@@ -619,3 +631,4 @@ $("#preview-toggle").addEventListener("click", () => {
 });
 
 checkAuth();
+window.showToast = showToast;

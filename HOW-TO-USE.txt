@@ -26,15 +26,28 @@ When admin page opens, use:
 
 From admin you can change:
   - "100+ Placement" numbers
-  - Alumni photos
+  - Alumni photos (Upload & Crop button)
+  - Logos and images (auto compressed)
   - Register / Login links
   - Colors, fonts, themes
   - Everything on the website
 
 Click "Save & Publish" after making changes.
 
+To upload images: click "Upload & Crop", choose file, adjust crop, click Upload.
 
-STEP 3 — STOP THE WEBSITE (optional)
+
+STEP 3 — GO LIVE ON INTERNET
+----------------------------
+Double-click:
+
+    GO-LIVE.bat
+
+Enter your server IP and SSH login when asked.
+It installs everything on your Niyamstack server automatically.
+
+
+STEP 4 — STOP THE WEBSITE (optional)
 ------------------------------------
 Double-click:
 
