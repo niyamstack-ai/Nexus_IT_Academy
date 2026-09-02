@@ -1,4 +1,4 @@
-# Nexus IT Academy — One-click start (no tech knowledge needed)
+# Nexus IT Academy - One-click start (no tech knowledge needed)
 # Just run this file in PowerShell, or double-click START-NEXUS.bat
 
 $ErrorActionPreference = "Stop"
@@ -25,7 +25,7 @@ Write-Host "  NEXUS IT ACADEMY - Website Starter" -ForegroundColor Magenta
 Write-Host "========================================" -ForegroundColor Magenta
 Write-Host ""
 
-# --- Step 1: Check Node.js ---
+# Step 1: Check Node.js
 Write-Step "Checking Node.js (needed to run the website)..."
 
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
@@ -62,35 +62,36 @@ if (-not $nodeCmd) {
 
 Write-Ok ("Node.js " + (node -v))
 
-# --- Step 2: Install packages (first time only) ---
+# Step 2: Install packages (first time only)
 Write-Step "Checking website files..."
 
 if (-not (Test-Path "$ProjectRoot\node_modules")) {
-    Write-Host "   First-time setup — downloading packages (1-2 minutes)..." -ForegroundColor Yellow
+    Write-Host "   First-time setup - downloading packages (1-2 minutes)..." -ForegroundColor Yellow
     npm install --no-fund --no-audit
     if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
 }
 Write-Ok "All packages ready"
 
-# --- Step 3: Create .env with your login (if missing) ---
+# Step 3: Create .env with your login (if missing)
 Write-Step "Setting up admin login..."
 
 $envFile = "$ProjectRoot\.env"
 if (-not (Test-Path $envFile)) {
-    @"
-PORT=3000
-NODE_ENV=production
-PUBLIC_URL=https://nexusitacad.niyamstack.com
-ADMIN_USERNAME=NexusITAcademy
-ADMIN_PASSWORD=GaurHari@109
-SESSION_SECRET=nexus-niyamstack-prod-secret-2026
-"@ | Set-Content -Path $envFile -Encoding UTF8
+    $envContent = @(
+        "PORT=3000"
+        "NODE_ENV=production"
+        "PUBLIC_URL=https://nexusitacad.niyamstack.com"
+        "ADMIN_USERNAME=NexusITAcademy"
+        "ADMIN_PASSWORD=GaurHari@109"
+        "SESSION_SECRET=nexus-niyamstack-prod-secret-2026"
+    ) -join "`n"
+    Set-Content -Path $envFile -Value $envContent -Encoding ASCII
     Write-Ok "Admin login created"
 } else {
     Write-Ok "Admin login already set"
 }
 
-# --- Step 4: Stop old copy if running ---
+# Step 4: Stop old copy if running
 Write-Step "Starting website..."
 
 try {
@@ -104,13 +105,13 @@ try {
     # ignore
 }
 
-# --- Step 5: Start server ---
+# Step 5: Start server
 Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory $ProjectRoot -WindowStyle Hidden
 Start-Sleep -Seconds 3
 
 # Check if server is up
 try {
-    $test = Invoke-WebRequest -Uri "http://localhost:3000/" -UseBasicParsing -TimeoutSec 10
+    $null = Invoke-WebRequest -Uri "http://localhost:3000/" -UseBasicParsing -TimeoutSec 10
     Write-Ok "Website is running!"
 } catch {
     Write-Host ""
@@ -119,7 +120,7 @@ try {
     exit 1
 }
 
-# --- Step 6: Open browser ---
+# Step 6: Open browser
 Write-Step "Opening your website in browser..."
 
 Start-Process "http://localhost:3000/"
