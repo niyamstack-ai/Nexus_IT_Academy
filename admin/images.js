@@ -41,7 +41,7 @@ function initCropper(file) {
       loadImagePresets().then((presets) => {
         const p = presets[cropPreset] || { aspectRatio: 1 };
         cropper = new Cropper(preview, {
-          aspectRatio: p.aspectRatio || 1,
+          aspectRatio: Number.isFinite(p.aspectRatio) ? p.aspectRatio : NaN,
           viewMode: 1,
           dragMode: "move",
           autoCropArea: 1,
@@ -58,11 +58,10 @@ async function uploadCroppedImage() {
   if (!cropper || !cropPreset) return;
   const presets = await loadImagePresets();
   const p = presets[cropPreset];
-  const canvas = cropper.getCroppedCanvas({
-    width: p.width,
-    height: p.height,
-    imageSmoothingQuality: "high"
-  });
+  const canvasOpts = Number.isFinite(p.aspectRatio)
+    ? { width: p.width, height: p.height, imageSmoothingQuality: "high" }
+    : { maxWidth: p.width, maxHeight: p.height, imageSmoothingQuality: "high" };
+  const canvas = cropper.getCroppedCanvas(canvasOpts);
   const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
 
   const res = await fetch("/api/admin/upload", {
