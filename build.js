@@ -155,7 +155,7 @@ ${customScripts.join("\n")}
 </body>
 </html>`;
 
-const finalPage = page.replace(/\/\/nexusitacad\.com/g, "https://nexusitacad.com");
+const finalPage = page.replace(/([^:])\/\/nexusitacad\.com/g, "$1https://nexusitacad.com");
 
 fs.writeFileSync(OUTPUT, finalPage, "utf8");
 console.log(`Built ${OUTPUT} (${finalPage.length} bytes)`);
