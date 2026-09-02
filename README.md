@@ -11,11 +11,13 @@ npm start
 
 | URL | Purpose |
 |-----|---------|
-| http://localhost:3000 | Public website |
-| http://localhost:3000/admin/ | Admin website builder |
+| https://nexusitacad.niyamstack.com/ | Public website (production) |
+| https://nexusitacad.niyamstack.com/admin/ | Admin website builder |
+| http://localhost:3000 | Local development |
+| http://localhost:3000/admin/ | Local admin |
 
-**Default admin password:** `nexusadmin2026`  
-Change via environment variable: `ADMIN_PASSWORD=your-secure-password`
+**Admin login:** Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env` (see `.env.example`).  
+Never commit `.env` to git.
 
 ## Admin Panel Features
 
@@ -30,6 +32,7 @@ Change via environment variable: `ADMIN_PASSWORD=your-secure-password`
 - **Contact & footer** — Address, phone, email, footer logos
 - **6 coaching themes** — Nexus Classic, Career Blue, Growth Green, Premium Purple, Trust Navy, Sunrise Orange
 - **Custom colors & fonts** — Override any theme
+- **Domain & Go Live** — Enter custom domain + VPS IP; get exact DNS records (@, www, A, CNAME) and Nginx config
 - **Live preview** — See changes before publishing
 
 ## Project Structure
@@ -46,13 +49,27 @@ public/assets/         # Site CSS & JS
 legacy/                # Original static Shopify copy
 ```
 
-## VPS Deployment (next step)
+## Domain & Go Live (Admin)
+
+In **Admin → Domain & Go Live**:
+
+1. Enter your custom domain (e.g. `nexusitacad.com`)
+2. Enter your **Niyamstack VPS public IP**
+3. Save — the panel shows exact DNS records to add at your registrar:
+   - **A record @** → VPS IP (root domain)
+   - **A or CNAME www** → VPS IP or domain (optional)
+4. Copy the generated **Nginx config** to your VPS
+5. Run Certbot for HTTPS after DNS propagates
+
+## VPS Deployment
+
+See **[deploy/DEPLOY.md](deploy/DEPLOY.md)** for full steps to go live on `nexusitacad.niyamstack.com`.
 
 1. Clone repo on VPS
-2. Set `ADMIN_PASSWORD` and `SESSION_SECRET` env vars
-3. Run with PM2: `pm2 start server.js --name nexus-cms`
-4. Point nginx to port 3000
-5. Connect domain DNS to VPS
+2. Copy `.env.example` → `.env` and set admin credentials + `SESSION_SECRET`
+3. `npm install && pm2 start deploy/ecosystem.config.cjs`
+4. Configure Nginx using `deploy/nexusitacad.niyamstack.com.nginx`
+5. Run Certbot for HTTPS
 
 ## Legacy Static Site
 

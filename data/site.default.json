@@ -149,5 +149,16 @@
       "colors": {}
     }
   },
+  "domain": {
+    "customDomain": "nexusitacad.com",
+    "serverIp": "",
+    "stagingUrl": "https://nexusitacad.niyamstack.com",
+    "liveSubdomain": "nexusitacad.niyamstack.com",
+    "appPort": 3000,
+    "includeWww": true,
+    "wwwRecordType": "A",
+    "redirectToHttps": true,
+    "registrarNotes": "Live on Niyamstack subdomain now. Add DNS records below when connecting nexusitacad.com."
+  },
   "updatedAt": null
 }

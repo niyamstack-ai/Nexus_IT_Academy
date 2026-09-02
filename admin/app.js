@@ -11,6 +11,7 @@ const SECTIONS = [
   { id: "fees", icon: "💰", title: "Fee Structure", desc: "Pay-after-placement pricing" },
   { id: "contact", icon: "📞", title: "Contact & Footer", desc: "Address, phone, email, footer logos" },
   { id: "themes", icon: "🎨", title: "Themes & Design", desc: "Colors, fonts, coaching themes" },
+  { id: "domain", icon: "🌐", title: "Domain & Go Live", desc: "Connect nexusitacad.com to your VPS" },
   { id: "settings", icon: "⚙️", title: "Site Settings", desc: "Site name, logo, SEO meta" }
 ];
 
@@ -39,6 +40,96 @@ function showToast(msg, type = "success") {
   t.textContent = msg;
   t.className = `toast ${type}`;
   setTimeout(() => t.classList.add("hidden"), 3000);
+}
+
+async function refreshDomainGuide() {
+  const guide = $("#domain-guide");
+  if (!guide) return;
+
+  try {
+    await saveSiteQuiet();
+    const data = await api("/api/admin/domain/setup");
+    const { dns, steps, nginxConfig, liveUrl, stagingUrl, adminUrl } = data;
+    const subdomain = site.domain?.liveSubdomain || "nexusitacad.niyamstack.com";
+    const publicLive = stagingUrl || `https://${subdomain}`;
+    const adminLive = adminUrl || `${publicLive.replace(/\/$/, "")}/admin`;
+
+    if (!dns.ready) {
+      guide.innerHTML = `<div class="card domain-live-card">
+        <h3>🚀 Current live URLs (Niyamstack)</h3>
+        <p><strong>Website:</strong> <a href="${publicLive}" target="_blank" rel="noopener">${publicLive}</a></p>
+        <p><strong>Admin panel:</strong> <a href="${adminLive}" target="_blank" rel="noopener">${adminLive}</a></p>
+        <p class="card-desc">Deploy this CMS on your VPS and point <code>${subdomain}</code> to it. Sign in with your Admin ID and password.</p>
+      </div>
+      <div class="card"><h3>DNS Records — waiting for custom domain details</h3>
+        <p class="card-desc">Enter your domain and VPS IP above, then save. We'll generate the exact A / @ / www records for your registrar.</p>
+        <ol class="steps-list">${steps.map((s) => `<li>${s}</li>`).join("")}</ol>
+      </div>`;
+      return;
+    }
+
+    const rows = dns.records.map((r) =>
+      `<tr>
+        <td><code>${r.type}</code></td>
+        <td><code>${r.hostLabel || r.host}</code></td>
+        <td><code>${r.value}</code></td>
+        <td>${r.ttl}</td>
+        <td>${r.purpose}</td>
+      </tr>`
+    ).join("");
+
+    guide.innerHTML = `
+      <div class="card domain-live-card">
+        <h3>🚀 Current live URLs (Niyamstack)</h3>
+        <p><strong>Website:</strong> <a href="${publicLive}" target="_blank" rel="noopener">${publicLive}</a></p>
+        <p><strong>Admin panel:</strong> <a href="${adminLive}" target="_blank" rel="noopener">${adminLive}</a></p>
+      </div>
+      <div class="card domain-live-card">
+        <h3>✅ Custom domain will be live at</h3>
+        <p class="live-url">${liveUrl || "https://" + dns.domain}</p>
+        <p class="card-desc">After DNS propagates and VPS is configured, visitors typing <strong>${dns.domain}</strong> will see your website.</p>
+      </div>
+      <div class="card">
+        <div class="card-header-row">
+          <h3>DNS Records to add at your registrar</h3>
+          <button type="button" class="btn btn-secondary btn-sm" id="copy-dns-btn">Copy records</button>
+        </div>
+        <p class="card-desc">Log in where you bought <strong>${dns.domain}</strong> (GoDaddy, Namecheap, Hostinger, etc.) → DNS Settings → add these:</p>
+        <div class="table-wrap">
+          <table class="dns-table">
+            <thead><tr><th>Type</th><th>Host / Name</th><th>Points to / Value</th><th>TTL</th><th>Purpose</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Step-by-step go-live checklist</h3>
+        <ol class="steps-list">${steps.map((s) => `<li>${s}</li>`).join("")}</ol>
+      </div>
+      <div class="card">
+        <div class="card-header-row">
+          <h3>Nginx config for your VPS</h3>
+          <button type="button" class="btn btn-secondary btn-sm" id="copy-nginx-btn">Copy config</button>
+        </div>
+        <p class="card-desc">Paste this on your Niyamstack VPS after deploying the CMS. It redirects ${dns.domain} → your Node app on port ${site.domain?.appPort || 3000}.</p>
+        <pre class="code-block" id="nginx-config">${nginxConfig.replace(/</g, "&lt;")}</pre>
+      </div>`;
+
+    $("#copy-dns-btn")?.addEventListener("click", () => {
+      const text = dns.records.map((r) => `${r.type}\t${r.host}\t${r.value}\tTTL ${r.ttl}`).join("\n");
+      navigator.clipboard.writeText(text).then(() => showToast("DNS records copied!"));
+    });
+
+    $("#copy-nginx-btn")?.addEventListener("click", () => {
+      navigator.clipboard.writeText(nginxConfig).then(() => showToast("Nginx config copied!"));
+    });
+  } catch (e) {
+    guide.innerHTML = `<div class="card"><p class="form-error">${e.message}</p></div>`;
+  }
+}
+
+async function saveSiteQuiet() {
+  await api("/api/admin/site", { method: "PUT", body: JSON.stringify(site) });
 }
 
 function linesToArray(text) {
@@ -173,13 +264,18 @@ function renderEditor() {
         <div class="stat-card"><strong>${site.jobProfiles?.items?.length || 0}</strong><span>Job profiles</span></div>
         <div class="stat-card"><strong>${themes.presets.find(t => t.id === site.theme?.presetId)?.name || "Custom"}</strong><span>Active theme</span></div>
       </div>
+      <div class="card domain-live-card">
+        <h3>🌐 Live on Niyamstack</h3>
+        <p><strong>Website:</strong> <a href="https://nexusitacad.niyamstack.com" target="_blank" rel="noopener">https://nexusitacad.niyamstack.com</a></p>
+        <p><strong>Admin:</strong> <a href="https://nexusitacad.niyamstack.com/admin/" target="_blank" rel="noopener">https://nexusitacad.niyamstack.com/admin/</a></p>
+      </div>
       <div class="card">
-        <h3>Quick Start</h3>
         <p class="card-desc">Update placement numbers, add alumni photos, or change Classplus links — then click <strong>Save & Publish</strong>.</p>
         <div class="field-grid-2">
           <button type="button" class="btn btn-secondary" data-goto="ticker">Edit Announcement Bar</button>
           <button type="button" class="btn btn-secondary" data-goto="alumni">Edit Alumni Stories</button>
           <button type="button" class="btn btn-secondary" data-goto="navigation">Edit Register/Login Links</button>
+          <button type="button" class="btn btn-secondary" data-goto="domain">Connect Custom Domain</button>
           <button type="button" class="btn btn-secondary" data-goto="themes">Change Theme</button>
         </div>
       </div>`;
@@ -331,6 +427,39 @@ function renderEditor() {
     card2.appendChild(list);
   }
 
+  if (activeSection === "domain") {
+    if (!site.domain) site.domain = {};
+    html = `<div class="card domain-hero-card">
+      <h3>🌐 Connect Your Domain (Go Live)</h3>
+      <p class="card-desc">You're building on Niyamstack hosting. Enter your domain and VPS IP here — we'll show exactly which DNS records (@, www, A, CNAME) to add at your registrar so <strong>nexusitacad.com</strong> points to your server.</p>
+      <div class="field-grid-2">
+        ${field("Custom domain", site.domain.customDomain, "text", "dom-name")}
+        ${field("VPS / Server IP (from Niyamstack)", site.domain.serverIp, "text", "dom-ip")}
+        ${field("Staging URL (optional)", site.domain.stagingUrl, "url", "dom-staging")}
+        ${field("App port on VPS", site.domain.appPort || 3000, "number", "dom-port")}
+      </div>
+      <div class="field-grid-2" style="margin-top:14px">
+        ${field("Include www subdomain", site.domain.includeWww !== false, "checkbox", "dom-www")}
+        ${field("Use CNAME for www (instead of A)", site.domain.wwwRecordType === "CNAME", "checkbox", "dom-cname-www")}
+      </div>
+      <p class="card-desc">💡 <strong>@</strong> means root domain (nexusitacad.com). <strong>www</strong> is the www subdomain. Most registrars use @ for the root A record.</p>
+    </div>
+    <div id="domain-guide"></div>`;
+    editor.innerHTML = html;
+
+    bindField("dom-name", (v) => { site.domain.customDomain = v; refreshDomainGuide(); });
+    bindField("dom-ip", (v) => { site.domain.serverIp = v; refreshDomainGuide(); });
+    bindField("dom-staging", (v) => { site.domain.stagingUrl = v; });
+    bindField("dom-port", (v) => { site.domain.appPort = parseInt(v, 10) || 3000; refreshDomainGuide(); });
+    bindField("dom-www", (v) => { site.domain.includeWww = v; refreshDomainGuide(); });
+    bindField("dom-cname-www", (v) => {
+      site.domain.wwwRecordType = v ? "CNAME" : "A";
+      refreshDomainGuide();
+    });
+
+    refreshDomainGuide();
+  }
+
   if (activeSection === "themes") {
     const themeCards = themes.presets.map((t) => {
       const active = site.theme?.presetId === t.id;
@@ -454,16 +583,19 @@ async function checkAuth() {
 
 $("#login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const username = $("#login-username").value.trim();
   const password = $("#login-password").value;
   try {
-    await api("/api/admin/login", { method: "POST", body: JSON.stringify({ password }) });
+    await api("/api/admin/login", { method: "POST", body: JSON.stringify({ username, password }) });
     await initApp();
   } catch {
     const err = $("#login-error");
-    err.textContent = "Invalid password. Default: nexusadmin2026";
+    err.textContent = "Invalid ID or password. Please try again.";
     err.classList.remove("hidden");
   }
 });
+
+
 
 $("#logout-btn").addEventListener("click", async () => {
   await api("/api/admin/logout", { method: "POST" });
