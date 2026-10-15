@@ -4,11 +4,14 @@ const SECTIONS = [
   { id: "navigation", icon: "🔗", title: "Register & Login", desc: "Button labels and external links" },
   { id: "hero", icon: "🎯", title: "Hero Section", desc: "Main headline and feature bullets" },
   { id: "partners", icon: "🏢", title: "Hiring Partners", desc: "Company logo carousel" },
-  { id: "alumni", icon: "🎓", title: "Alumni / Success Stories", desc: "Student placement photos" },
+  { id: "alumni", icon: "🎓", title: "Alumni Spotlight", desc: "Student placement photos" },
   { id: "journey", icon: "🛤️", title: "Journey Steps", desc: "Your Journey at Nexus IT" },
-  { id: "guarantee", icon: "✅", title: "Placement Guarantee", desc: "100 days guarantee section" },
-  { id: "jobs", icon: "💼", title: "Job Profiles", desc: "Courses and placement profiles" },
+  { id: "guarantee", icon: "✅", title: "Placement Guarantee", desc: "90 days guarantee section" },
+  { id: "course", icon: "📘", title: "Course / Scrum Master", desc: "Syllabus, roles, skills tags" },
+  { id: "jobs", icon: "💼", title: "Job Profiles", desc: "Optional multi-profile cards" },
   { id: "fees", icon: "💰", title: "Fee Structure", desc: "Pay-after-placement pricing" },
+  { id: "eligibility", icon: "📋", title: "Eligibility", desc: "Who can apply" },
+  { id: "batch", icon: "📅", title: "Next Batch", desc: "Upcoming batch date & time" },
   { id: "contact", icon: "📞", title: "Contact & Footer", desc: "Address, phone, email, footer logos" },
   { id: "themes", icon: "🎨", title: "Themes & Design", desc: "Colors, fonts, coaching themes" },
   { id: "domain", icon: "🌐", title: "Domain & Go Live", desc: "Connect nexusitacad.com to your VPS" },
@@ -342,9 +345,45 @@ function renderEditor() {
   }
 
   if (activeSection === "jobs") {
+    if (!site.jobProfiles) site.jobProfiles = { enabled: false, title: "", items: [] };
     html = `<div class="card"><h3>Job Profiles Section</h3>
+      ${field("Show this section", site.jobProfiles?.enabled === true, "checkbox", "jobs-enabled")}
       ${field("Section title", site.jobProfiles?.title, "text", "jobs-title")}
       ${field("Profiles (one per line)", arrayToLines(site.jobProfiles?.items), "textarea", "jobs-items")}
+      <p class="card-desc">Usually hidden when the Scrum Master course section is shown.</p>
+    </div>`;
+  }
+
+  if (activeSection === "course") {
+    if (!site.course) site.course = { enabled: true, tags: [], roles: [], modules: [] };
+    html = `<div class="card"><h3>Course / Scrum Master</h3>
+      ${field("Show course section", site.course.enabled !== false, "checkbox", "course-enabled")}
+      ${field("Course title", site.course.title, "text", "course-title")}
+      ${field("Subtitle", site.course.subtitle, "text", "course-subtitle")}
+      ${field("Skill tags (one per line)", arrayToLines(site.course.tags), "textarea", "course-tags")}
+      ${field("Roles title", site.course.rolesTitle, "text", "course-roles-title")}
+      ${field("Roles (one per line)", arrayToLines(site.course.roles), "textarea", "course-roles")}
+      ${field("Syllabus title", site.course.syllabusTitle, "text", "course-syllabus-title")}
+      <p class="card-desc">Edit modules below. Each module has a title and bullet points.</p>
+    </div>`;
+  }
+
+  if (activeSection === "eligibility") {
+    if (!site.eligibility) site.eligibility = { enabled: true, title: "", items: [] };
+    html = `<div class="card"><h3>Eligibility Criteria</h3>
+      ${field("Show eligibility section", site.eligibility.enabled !== false, "checkbox", "elig-enabled")}
+      ${field("Title", site.eligibility.title, "text", "elig-title")}
+      ${field("Criteria (one per line)", arrayToLines(site.eligibility.items), "textarea", "elig-items")}
+    </div>`;
+  }
+
+  if (activeSection === "batch") {
+    if (!site.nextBatch) site.nextBatch = { enabled: true, eyebrow: "", title: "", subtitle: "" };
+    html = `<div class="card"><h3>Next Batch Launch</h3>
+      ${field("Show next batch section", site.nextBatch.enabled !== false, "checkbox", "batch-enabled")}
+      ${field("Eyebrow text", site.nextBatch.eyebrow, "text", "batch-eyebrow")}
+      ${field("Date / time title", site.nextBatch.title, "text", "batch-title")}
+      ${field("Supporting text", site.nextBatch.subtitle, "text", "batch-subtitle")}
     </div>`;
   }
 
@@ -382,15 +421,37 @@ function renderEditor() {
   if (activeSection === "alumni") {
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h3>Alumni / Success Stories</h3>
+    card.innerHTML = `<h3>Alumni Spotlight</h3>
+      ${field("Section title", site.alumni?.title || "Alumni Spotlight", "text", "alumni-title")}
       ${field("Carousel speed (seconds)", site.alumni?.autoplaySeconds || 5, "number", "alumni-speed")}
-      <p class="card-desc">Upload success story photos. Images are auto-cropped and compressed for fast loading.</p>`;
+      <p class="card-desc">Upload success story photos. Full image is kept (top text will not be cut).</p>`;
     editor.appendChild(card);
+    bindField("alumni-title", (v) => { site.alumni.title = v; });
     bindField("alumni-speed", (v) => { site.alumni.autoplaySeconds = parseInt(v, 10) || 5; });
     const list = listField("Story", site.alumni.items, [
       { key: "image", label: "Photo", type: "image", preset: "alumni" },
       { key: "alt", label: "Caption / student name" }
     ], () => {});
+    card.appendChild(list);
+  }
+
+  if (activeSection === "course") {
+    if (!site.course.modules) site.course.modules = [];
+    site.course.modules.forEach((m) => {
+      if (!m.itemsText) m.itemsText = arrayToLines(m.items || []);
+    });
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<h3>Syllabus Modules</h3>`;
+    editor.appendChild(card);
+    const list = listField("Module", site.course.modules, [
+      { key: "title", label: "Module title" },
+      { key: "itemsText", label: "Bullets (one per line)", type: "textarea" }
+    ], () => {
+      site.course.modules.forEach((m) => {
+        if (typeof m.itemsText === "string") m.items = linesToArray(m.itemsText);
+      });
+    });
     card.appendChild(list);
   }
 
@@ -559,8 +620,23 @@ function renderEditor() {
     "hero-features": (v) => { site.hero.features = linesToArray(v); },
     "pg-title": (v) => { site.placementGuarantee.title = v; },
     "pg-subtitle": (v) => { site.placementGuarantee.subtitle = v; },
+    "jobs-enabled": (v) => { site.jobProfiles.enabled = v; },
     "jobs-title": (v) => { site.jobProfiles.title = v; },
     "jobs-items": (v) => { site.jobProfiles.items = linesToArray(v); },
+    "course-enabled": (v) => { site.course.enabled = v; },
+    "course-title": (v) => { site.course.title = v; },
+    "course-subtitle": (v) => { site.course.subtitle = v; },
+    "course-tags": (v) => { site.course.tags = linesToArray(v); },
+    "course-roles-title": (v) => { site.course.rolesTitle = v; },
+    "course-roles": (v) => { site.course.roles = linesToArray(v); },
+    "course-syllabus-title": (v) => { site.course.syllabusTitle = v; },
+    "elig-enabled": (v) => { site.eligibility.enabled = v; },
+    "elig-title": (v) => { site.eligibility.title = v; },
+    "elig-items": (v) => { site.eligibility.items = linesToArray(v); },
+    "batch-enabled": (v) => { site.nextBatch.enabled = v; },
+    "batch-eyebrow": (v) => { site.nextBatch.eyebrow = v; },
+    "batch-title": (v) => { site.nextBatch.title = v; },
+    "batch-subtitle": (v) => { site.nextBatch.subtitle = v; },
     "site-name": (v) => { site.siteName = v; site.meta.title = v; },
     "meta-title": (v) => { site.meta.title = v; },
     "meta-desc": (v) => { site.meta.description = v; }

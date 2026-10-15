@@ -1,8 +1,8 @@
 {
   "siteName": "Nexus IT Academy",
   "meta": {
-    "title": "Nexus IT Academy",
-    "description": "A Genuine Pay After Placement IT Consultancy - Nexus IT Academy"
+    "title": "Nexus IT - Genuine Pay after Placement IT Academy",
+    "description": "A Genuine Pay After Placement IT Academy & Placement Firm - Nexus IT Academy"
   },
   "logo": "/uploads/logo-NEXUS_1_1-4daafc.webp",
   "footerLogo": "/uploads/footerLogo-NEXUS_6_1-ce17a5.webp",
@@ -19,104 +19,65 @@
     "register": {
       "label": "Register",
       "url": "https://qlisen.courses.store",
-      "enabled": false,
+      "enabled": true,
       "openInNewTab": true
     },
     "login": {
       "label": "Login Training Program",
       "url": "https://web.classplusapp.com/login?orgCode=qlisen",
-      "enabled": false,
+      "enabled": true,
       "openInNewTab": true
     }
   },
   "hero": {
-    "headline": "A Genuine Pay After Placement IT Consultancy",
+    "headline": "A Genuine Pay After Placement IT Academy & Placement Firm",
     "features": [
-      "1 on 1 Live Interview Training",
+      "45 Days Training Program",
       "Strong Resume & Dealing with Career Gaps",
       "Direct interview scheduling with Partner MNCs – Your Unfair Advantage.",
-      "From Training to Placement – Your Success Is our Responsibility."
+      "1 on 1 Mock Interview Training"
     ]
   },
   "hiringPartners": {
     "title": "Our Hiring Partners",
     "logos": [
-      {
-        "url": "/uploads/partnerLogo-LTIMindtree_Logo_svg-77fd07.webp",
-        "alt": "LTIMindtree"
-      },
-      {
-        "url": "/uploads/partnerLogo-images-removebg-preview-c182cd.webp",
-        "alt": "Partner"
-      },
-      {
-        "url": "/uploads/partnerLogo-Persistent_Systems_Logo_svg-18ca7e.webp",
-        "alt": "Persistent"
-      },
-      {
-        "url": "/uploads/partnerLogo-Infosys_logo_svg-a33491.webp",
-        "alt": "Infosys"
-      },
-      {
-        "url": "/uploads/partnerLogo-logo-removebg-preview-a280fa.webp",
-        "alt": "Partner"
-      },
-      {
-        "url": "/uploads/partnerLogo-WNS_Global_Services_Logo_svg-315b43.webp",
-        "alt": "WNS"
-      },
-      {
-        "url": "/uploads/partnerLogo-HCL_Technologies-Logo-wine-be245b.webp",
-        "alt": "HCL"
-      },
-      {
-        "url": "/uploads/partnerLogo-Accenture_logo-34c2eb.webp",
-        "alt": "Accenture"
-      }
+      { "url": "/uploads/partnerLogo-LTIMindtree_Logo_svg-77fd07.webp", "alt": "LTIMindtree" },
+      { "url": "/uploads/partnerLogo-images-removebg-preview-c182cd.webp", "alt": "Partner" },
+      { "url": "/uploads/partnerLogo-Persistent_Systems_Logo_svg-18ca7e.webp", "alt": "Persistent" },
+      { "url": "/uploads/partnerLogo-Infosys_logo_svg-a33491.webp", "alt": "Infosys" },
+      { "url": "/uploads/partnerLogo-logo-removebg-preview-a280fa.webp", "alt": "Partner" },
+      { "url": "/uploads/partnerLogo-WNS_Global_Services_Logo_svg-315b43.webp", "alt": "WNS" },
+      { "url": "/uploads/partnerLogo-HCL_Technologies-Logo-wine-be245b.webp", "alt": "HCL" },
+      { "url": "/uploads/partnerLogo-Accenture_logo-34c2eb.webp", "alt": "Accenture" }
     ]
   },
   "alumni": {
-    "title": "Success Stories From Our Students",
+    "title": "Alumni Spotlight",
     "autoplaySeconds": 5,
     "items": [
-      {
-        "image": "/uploads/alumni-1-8d981c.webp",
-        "alt": "Success story 1"
-      },
-      {
-        "image": "/uploads/alumni-5-d1a560.webp",
-        "alt": "Success story 2"
-      },
-      {
-        "image": "/uploads/alumni-4-53236d.webp",
-        "alt": "Success story 3"
-      },
-      {
-        "image": "/uploads/alumni-Ayan_2-5826ac.webp",
-        "alt": "Ayan success story"
-      },
-      {
-        "image": "/uploads/alumni-3-cc304a.webp",
-        "alt": "Success story 5"
-      }
+      { "image": "/uploads/alumni-1-8d981c.webp", "alt": "Alumni spotlight 1" },
+      { "image": "/uploads/alumni-5-d1a560.webp", "alt": "Alumni spotlight 2" },
+      { "image": "/uploads/alumni-4-53236d.webp", "alt": "Alumni spotlight 3" },
+      { "image": "/uploads/alumni-Ayan_2-5826ac.webp", "alt": "Alumni spotlight 4" },
+      { "image": "/uploads/alumni-3-cc304a.webp", "alt": "Alumni spotlight 5" }
     ]
   },
   "journey": {
-    "title": "🏆 Your Journey At Nexus IT",
+    "title": "🏆 Your Journey At Nexus IT Academy",
     "steps": [
       {
         "title": "Step 1 | Screening Round",
-        "description": "‼️ Admission to our program is selective - Only those who clear Screening Process can Enroll",
+        "description": "‼️ Admission to our program is selective - Only those who clear Screening Round can Enroll",
         "icon": "/uploads/journeyIcon-filter-aba127.webp"
       },
       {
         "title": "Step 2 | Training",
-        "description": "All your Training, Tests, and Mock Interview — available on our Learning App.",
+        "description": "45 Days Training Program to make you Industry ready.",
         "icon": "/uploads/journeyIcon-online-learning-cd65f8.webp"
       },
       {
         "title": "Step 3 | Interview Scheduling",
-        "description": "Connecting you with our Placement Partners - Your Unfair Advantage",
+        "description": "Directly connecting you with our Placement Partners",
         "icon": "/uploads/journeyIcon-interview-dc13f4.webp"
       },
       {
@@ -127,10 +88,97 @@
     ]
   },
   "placementGuarantee": {
-    "title": "100 Days Placement Guarantee",
-    "subtitle": "Post Completion of Training & Mock Interview"
+    "title": "90 Days Placement Guaranteed Program",
+    "subtitle": "From Training ➡️ To Mock Interview Practice ➡️ To Placement in an MNC"
+  },
+  "course": {
+    "enabled": true,
+    "title": "Scrum Master - Agile Consultant",
+    "subtitle": "Build job-ready skills with expert-led training",
+    "tags": ["Jira & Confluence", "SAFe", "Kanban"],
+    "rolesTitle": "Roles & Responsibilities",
+    "roles": [
+      "A No-Code IT Management Role",
+      "Lead daily Stand-up meetings, Sprint planning",
+      "Track Project Progress and ensure timely delivery",
+      "Coordinate with Stakeholders & Client",
+      "Manage complete Life cycle of a Software Development"
+    ],
+    "syllabusTitle": "45 Days Program Syllabus",
+    "modules": [
+      {
+        "title": "Module 1: Agile Foundations",
+        "items": [
+          "SDLC and the Waterfall model",
+          "Agile values and principles, with real-world examples",
+          "Agile vs. Waterfall",
+          "Benefits of Agile and the projects it suits",
+          "Overview of frameworks: Scrum, SAFe, Kanban"
+        ]
+      },
+      {
+        "title": "Module 2: Scrum",
+        "items": [
+          "Scrum theory, pillars and values",
+          "Roles: Scrum Master, Product Owner, Developers",
+          "Events: Sprint, Sprint Planning, Daily Scrum, Sprint Review, Sprint Retrospective",
+          "Artifacts: Product Backlog, Sprint Backlog, Increment",
+          "Practical topics: Backlog refinement, planning poker, story slicing, DoR/DoD, capacity planning"
+        ]
+      },
+      {
+        "title": "Module 3: SAFe",
+        "items": [
+          "Scrum vs. SAFe, and when to use SAFe",
+          "SAFe configurations, values and principles",
+          "Roles in SAFe",
+          "Agile Release Train (ART) and Scrum of Scrums",
+          "PI Planning, Program Board, Dependency Tracker, Risk Tracker",
+          "Managing dependencies and risks (ROAM)",
+          "Inspect & Adapt workshop and System Demo",
+          "Value Stream Mapping"
+        ]
+      },
+      {
+        "title": "Module 4: Kanban",
+        "items": [
+          "What Kanban is and where it fits",
+          "Scrum vs. SAFe vs. Kanban",
+          "Values, principles and suitable projects",
+          "WIP limits and the pull system",
+          "Flow metrics: Cycle Time, Lead Time, Throughput"
+        ]
+      },
+      {
+        "title": "Module 5: Agile Metrics and Reporting",
+        "items": [
+          "Scrum: Burndown and Burnup, Velocity, Sprint Churn, Predictability, Defect Ratio",
+          "SAFe: PI Predictability, ART Predictability, Program Board and Risk reports",
+          "Kanban: Cycle Time, Lead Time, Throughput, Cumulative Flow Diagram, WIP"
+        ]
+      },
+      {
+        "title": "Module 6: Tools: Jira, Confluence",
+        "items": [
+          "Hands-on Jira and Confluence practice",
+          "Dashboards, automation and JQL queries",
+          "Jira AI (Rovo) features",
+          "Azure DevOps session"
+        ]
+      },
+      {
+        "title": "Module 7: Release Management",
+        "items": [
+          "Role of the Scrum Master in end-to-end releases",
+          "Types of releases",
+          "Creating fix versions and finalizing stories",
+          "Change requests and service overview"
+        ]
+      }
+    ]
   },
   "jobProfiles": {
+    "enabled": false,
     "title": "Successfully Placing In Various Job Profile",
     "items": [
       "1. SAP SD | MM | FICO",
@@ -145,20 +193,34 @@
     "steps": [
       {
         "label": "Registration Amount",
-        "title": "Rs. 2000",
+        "title": "Rs. 5000",
         "description": "The Only amount you pay before getting a Job."
       },
       {
         "label": "First Payment",
         "title": "After Placement & Receiving Offer Letter",
-        "description": "5% of the CTC you will be offered by the Company"
+        "description": "2.5% of the CTC you will be offered by Our Partner Company"
       },
       {
         "label": "Remaining Fees",
         "title": "From the Salary in Easy Instalments",
-        "description": "15% of the CTC"
+        "description": "17.5% of the CTC"
       }
     ]
+  },
+  "eligibility": {
+    "enabled": true,
+    "title": "‼️ Do you meet the eligibility criteria ?",
+    "items": [
+      "Graduation completed between any Year 2016 To 2023",
+      "Good English Communication Skills - Verbal and Written"
+    ]
+  },
+  "nextBatch": {
+    "enabled": true,
+    "eyebrow": "‼️ Next Batch Launch",
+    "title": "01 November 2026 | 7 - 8 PM",
+    "subtitle": "Limited seats. Clear the screening round to enroll."
   },
   "contact": {
     "title": "Get In Touch With Us",
@@ -169,46 +231,16 @@
   "footerPartners": {
     "title": "Top Hiring Partners",
     "logos": [
-      {
-        "url": "/uploads/partnerLogo-HCL_Technologies-Logo-wine-c8917c.webp",
-        "alt": "HCL"
-      },
-      {
-        "url": "/uploads/partnerLogo-free-sap-logo-icon-svg-download-png-2945-9b9cc4.webp",
-        "alt": "SAP"
-      },
-      {
-        "url": "/uploads/partnerLogo-Accenture_logo-406a5f.webp",
-        "alt": "Accenture"
-      },
-      {
-        "url": "/uploads/partnerLogo-ibm_PNG19658-6a6839.webp",
-        "alt": "IBM"
-      },
-      {
-        "url": "/uploads/partnerLogo-WNS_Global_Services_Logo_svg-9a705d.webp",
-        "alt": "WNS"
-      },
-      {
-        "url": "/uploads/partnerLogo-L_T-dc533c.webp",
-        "alt": "L&T"
-      },
-      {
-        "url": "/uploads/partnerLogo-Persistent_Systems_Logo_svg-784e5c.webp",
-        "alt": "Persistent"
-      },
-      {
-        "url": "/uploads/partnerLogo-LTIMindtree_Logo_svg-3bdae6.webp",
-        "alt": "LTIMindtree"
-      },
-      {
-        "url": "/uploads/partnerLogo-Infosys_logo_svg-e53a9c.webp",
-        "alt": "Infosys"
-      },
-      {
-        "url": "/uploads/partnerLogo-pngimg-com_-_intel_PNG19-15f5e1.webp",
-        "alt": "Intel"
-      }
+      { "url": "/uploads/partnerLogo-HCL_Technologies-Logo-wine-c8917c.webp", "alt": "HCL" },
+      { "url": "/uploads/partnerLogo-free-sap-logo-icon-svg-download-png-2945-9b9cc4.webp", "alt": "SAP" },
+      { "url": "/uploads/partnerLogo-Accenture_logo-406a5f.webp", "alt": "Accenture" },
+      { "url": "/uploads/partnerLogo-ibm_PNG19658-6a6839.webp", "alt": "IBM" },
+      { "url": "/uploads/partnerLogo-WNS_Global_Services_Logo_svg-9a705d.webp", "alt": "WNS" },
+      { "url": "/uploads/partnerLogo-L_T-dc533c.webp", "alt": "L&T" },
+      { "url": "/uploads/partnerLogo-Persistent_Systems_Logo_svg-784e5c.webp", "alt": "Persistent" },
+      { "url": "/uploads/partnerLogo-LTIMindtree_Logo_svg-3bdae6.webp", "alt": "LTIMindtree" },
+      { "url": "/uploads/partnerLogo-Infosys_logo_svg-e53a9c.webp", "alt": "Infosys" },
+      { "url": "/uploads/partnerLogo-pngimg-com_-_intel_PNG19-15f5e1.webp", "alt": "Intel" }
     ]
   },
   "theme": {
@@ -229,5 +261,5 @@
     "redirectToHttps": true,
     "registrarNotes": "Live on Niyamstack subdomain now. Add DNS records below when connecting nexusitacad.com."
   },
-  "updatedAt": "2026-09-02T14:13:11.209Z"
+  "updatedAt": null
 }
