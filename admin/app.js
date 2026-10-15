@@ -393,8 +393,8 @@ function renderEditor() {
       ${field("Button / WhatsApp URL", site.nextBatch.ctaUrl || "", "url", "batch-cta-url")}
     </div>
     <div class="card"><h3>Floating WhatsApp Button</h3>
-      ${field("Show floating JOIN COMMUNITY button", site.community.enabled !== false && site.community.floating !== false, "checkbox", "community-float")}
-      <p class="card-desc">Uses the same WhatsApp community link as the Next Batch button.</p>
+      ${field("Show floating JOIN COMMUNITY button", site.community.floating === true, "checkbox", "community-float")}
+      <p class="card-desc">Keep this OFF so visitors read Eligibility and full details first. Join Community stays only in the Next Batch section.</p>
     </div>`;
   }
 

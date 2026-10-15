@@ -19,6 +19,10 @@ body {
   overflow-x: hidden;
 }
 
+h1, h2, h3, h4, .section-title, .gradient-heading, .course-hero__title, .batch-hero__title, .batch-hero__date {
+  font-family: var(--font-heading);
+}
+
 img {
   max-width: 100%;
   height: auto;

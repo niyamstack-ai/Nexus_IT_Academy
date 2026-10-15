@@ -234,7 +234,8 @@
     "label": "JOIN COMMUNITY",
     "url": "https://chat.whatsapp.com/B5qBLXzdsTwLsfwUaqFvpR",
     "openInNewTab": true,
-    "floating": true
+    "floating": false,
+    "showInHeader": false
   },
   "contact": {
     "title": "Get In Touch With Us",
