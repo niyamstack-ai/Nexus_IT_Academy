@@ -54,12 +54,12 @@
   "alumni": {
     "title": "Alumni Spotlight",
     "autoplaySeconds": 5,
+    "layout": "grid",
     "items": [
-      { "image": "/uploads/alumni-1-8d981c.webp", "alt": "Alumni spotlight 1" },
-      { "image": "/uploads/alumni-5-d1a560.webp", "alt": "Alumni spotlight 2" },
-      { "image": "/uploads/alumni-4-53236d.webp", "alt": "Alumni spotlight 3" },
-      { "image": "/uploads/alumni-Ayan_2-5826ac.webp", "alt": "Alumni spotlight 4" },
-      { "image": "/uploads/alumni-3-cc304a.webp", "alt": "Alumni spotlight 5" }
+      { "image": "/uploads/alumni-live-1-9dc791.webp", "alt": "Alumni spotlight 1" },
+      { "image": "/uploads/alumni-live-2-ac3045.webp", "alt": "Alumni spotlight 2" },
+      { "image": "/uploads/alumni-live-3-647511.webp", "alt": "Alumni spotlight 3" },
+      { "image": "/uploads/alumni-live-4-cb455e.webp", "alt": "Alumni spotlight 4" }
     ]
   },
   "journey": {

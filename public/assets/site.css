@@ -122,7 +122,7 @@ img {
 .hero {
   background: var(--hero-bg);
   color: var(--hero-text);
-  padding: 48px 20px 56px;
+  padding: 56px 20px 64px;
 }
 
 .hero__inner {
@@ -139,9 +139,10 @@ img {
 .hero h1 {
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: clamp(1.5rem, 4vw, 3.5rem);
+  font-size: clamp(1.6rem, 4.2vw, 3.5rem);
   line-height: 1.15;
   margin: 0 0 28px;
+  color: var(--hero-text);
 }
 
 .hero__features {
@@ -155,7 +156,8 @@ img {
   gap: 12px;
   align-items: flex-start;
   margin-bottom: 16px;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  color: var(--hero-text);
 }
 
 .hero-feature__icon {
@@ -233,7 +235,10 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
 .logo-card img {
@@ -241,9 +246,36 @@ img {
   object-fit: contain;
 }
 
-/* Carousel */
-.section--carousel {
+/* Alumni Spotlight - desktop grid (4 cards) + mobile carousel */
+.section--alumni {
   background: #fff;
+}
+
+.alumni-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.alumni-grid__item {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  background: #f3f3f3;
+}
+
+.alumni-grid__item img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  object-position: top center;
+  display: block;
+  background: #fff;
+}
+
+.alumni-mobile-carousel {
+  display: none;
 }
 
 .carousel {
@@ -293,6 +325,24 @@ img {
 .carousel__dot.active {
   opacity: 1;
   transform: scale(1.15);
+}
+
+@media (max-width: 989px) {
+  .alumni-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 749px) {
+  .alumni-grid {
+    display: none;
+  }
+
+  .alumni-mobile-carousel {
+    display: block;
+    max-width: 600px;
+    margin: 0 auto;
+  }
 }
 
 /* Journey */
