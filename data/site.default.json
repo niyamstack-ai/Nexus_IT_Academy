@@ -93,16 +93,18 @@
   },
   "course": {
     "enabled": true,
+    "badge": "JOB PROFILE NAME",
     "title": "Scrum Master - Agile Consultant",
     "subtitle": "Build job-ready skills with expert-led training",
     "tags": ["Jira & Confluence", "SAFe", "Kanban"],
+    "aboutTitle": "About the Job Profile",
     "rolesTitle": "Roles & Responsibilities",
     "roles": [
       "A No-Code IT Management Role",
       "Lead daily Stand-up meetings, Sprint planning",
       "Track Project Progress and ensure timely delivery",
       "Coordinate with Stakeholders & Client",
-      "Manage complete Life cycle of a Software Development"
+      "Manage complete Life cycle of a Software Developement"
     ],
     "syllabusTitle": "45 Days Program Syllabus",
     "modules": [
@@ -123,7 +125,7 @@
           "Roles: Scrum Master, Product Owner, Developers",
           "Events: Sprint, Sprint Planning, Daily Scrum, Sprint Review, Sprint Retrospective",
           "Artifacts: Product Backlog, Sprint Backlog, Increment",
-          "Practical topics: Backlog refinement, planning poker, story slicing, DoR/DoD, capacity planning"
+          "Practical topics: Backlog refinement and planning poker, Story slicing and spikes, Definition of Ready and Definition of Done, Capacity planning, Scope creep and technical debt, Working with teams across time zones"
         ]
       },
       {
@@ -133,7 +135,7 @@
           "SAFe configurations, values and principles",
           "Roles in SAFe",
           "Agile Release Train (ART) and Scrum of Scrums",
-          "PI Planning, Program Board, Dependency Tracker, Risk Tracker",
+          "PI Planning, plus the PI boards and trackers used (Program Board, Dependency Tracker, Risk Tracker)",
           "Managing dependencies and risks (ROAM)",
           "Inspect & Adapt workshop and System Demo",
           "Value Stream Mapping"
@@ -152,9 +154,9 @@
       {
         "title": "Module 5: Agile Metrics and Reporting",
         "items": [
-          "Scrum: Burndown and Burnup, Velocity, Sprint Churn, Predictability, Defect Ratio",
-          "SAFe: PI Predictability, ART Predictability, Program Board and Risk reports",
-          "Kanban: Cycle Time, Lead Time, Throughput, Cumulative Flow Diagram, WIP"
+          "Scrum : Burndown and Burnup, Velocity, Sprint Churn, Predictability, Defect Ratio",
+          "SAFe : PI Predictability, ART Predictability, Program Board and Risk reports",
+          "Kanban : Cycle Time, Lead Time, Throughput, Cumulative Flow Diagram, WIP"
         ]
       },
       {
@@ -218,9 +220,21 @@
   },
   "nextBatch": {
     "enabled": true,
-    "eyebrow": "‼️ Next Batch Launch",
-    "title": "01 November 2026 | 7 - 8 PM",
-    "subtitle": "Limited seats. Clear the screening round to enroll."
+    "badge": "Registration",
+    "title": "⚡️ Next Batch Launch",
+    "cardEyebrow": "Attend our Demo session",
+    "dateTitle": "01 November 2026 | 7 - 8 PM",
+    "cardText": "Join our Whatsapp Group for Next Batch Announcement",
+    "ctaLabel": "JOIN COMMUNITY",
+    "ctaUrl": "https://chat.whatsapp.com/B5qBLXzdsTwLsfwUaqFvpR",
+    "ctaOpenInNewTab": true
+  },
+  "community": {
+    "enabled": true,
+    "label": "JOIN COMMUNITY",
+    "url": "https://chat.whatsapp.com/B5qBLXzdsTwLsfwUaqFvpR",
+    "openInNewTab": true,
+    "floating": true
   },
   "contact": {
     "title": "Get In Touch With Us",

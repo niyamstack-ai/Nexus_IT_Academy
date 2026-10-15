@@ -358,9 +358,11 @@ function renderEditor() {
     if (!site.course) site.course = { enabled: true, tags: [], roles: [], modules: [] };
     html = `<div class="card"><h3>Course / Scrum Master</h3>
       ${field("Show course section", site.course.enabled !== false, "checkbox", "course-enabled")}
+      ${field("Badge text", site.course.badge || "JOB PROFILE NAME", "text", "course-badge")}
       ${field("Course title", site.course.title, "text", "course-title")}
       ${field("Subtitle", site.course.subtitle, "text", "course-subtitle")}
       ${field("Skill tags (one per line)", arrayToLines(site.course.tags), "textarea", "course-tags")}
+      ${field("About card title", site.course.aboutTitle || "About the Job Profile", "text", "course-about")}
       ${field("Roles title", site.course.rolesTitle, "text", "course-roles-title")}
       ${field("Roles (one per line)", arrayToLines(site.course.roles), "textarea", "course-roles")}
       ${field("Syllabus title", site.course.syllabusTitle, "text", "course-syllabus-title")}
@@ -378,12 +380,21 @@ function renderEditor() {
   }
 
   if (activeSection === "batch") {
-    if (!site.nextBatch) site.nextBatch = { enabled: true, eyebrow: "", title: "", subtitle: "" };
+    if (!site.nextBatch) site.nextBatch = { enabled: true };
+    if (!site.community) site.community = { enabled: true, floating: true };
     html = `<div class="card"><h3>Next Batch Launch</h3>
       ${field("Show next batch section", site.nextBatch.enabled !== false, "checkbox", "batch-enabled")}
-      ${field("Eyebrow text", site.nextBatch.eyebrow, "text", "batch-eyebrow")}
-      ${field("Date / time title", site.nextBatch.title, "text", "batch-title")}
-      ${field("Supporting text", site.nextBatch.subtitle, "text", "batch-subtitle")}
+      ${field("Badge text", site.nextBatch.badge || "Registration", "text", "batch-badge")}
+      ${field("Main title", site.nextBatch.title || "⚡️ Next Batch Launch", "text", "batch-title")}
+      ${field("Card eyebrow", site.nextBatch.cardEyebrow || "Attend our Demo session", "text", "batch-eyebrow")}
+      ${field("Date / time", site.nextBatch.dateTitle || "", "text", "batch-date")}
+      ${field("Card text", site.nextBatch.cardText || "", "text", "batch-text")}
+      ${field("Button label", site.nextBatch.ctaLabel || "JOIN COMMUNITY", "text", "batch-cta-label")}
+      ${field("Button / WhatsApp URL", site.nextBatch.ctaUrl || "", "url", "batch-cta-url")}
+    </div>
+    <div class="card"><h3>Floating WhatsApp Button</h3>
+      ${field("Show floating JOIN COMMUNITY button", site.community.enabled !== false && site.community.floating !== false, "checkbox", "community-float")}
+      <p class="card-desc">Uses the same WhatsApp community link as the Next Batch button.</p>
     </div>`;
   }
 
@@ -624,9 +635,11 @@ function renderEditor() {
     "jobs-title": (v) => { site.jobProfiles.title = v; },
     "jobs-items": (v) => { site.jobProfiles.items = linesToArray(v); },
     "course-enabled": (v) => { site.course.enabled = v; },
+    "course-badge": (v) => { site.course.badge = v; },
     "course-title": (v) => { site.course.title = v; },
     "course-subtitle": (v) => { site.course.subtitle = v; },
     "course-tags": (v) => { site.course.tags = linesToArray(v); },
+    "course-about": (v) => { site.course.aboutTitle = v; },
     "course-roles-title": (v) => { site.course.rolesTitle = v; },
     "course-roles": (v) => { site.course.roles = linesToArray(v); },
     "course-syllabus-title": (v) => { site.course.syllabusTitle = v; },
@@ -634,9 +647,18 @@ function renderEditor() {
     "elig-title": (v) => { site.eligibility.title = v; },
     "elig-items": (v) => { site.eligibility.items = linesToArray(v); },
     "batch-enabled": (v) => { site.nextBatch.enabled = v; },
-    "batch-eyebrow": (v) => { site.nextBatch.eyebrow = v; },
+    "batch-badge": (v) => { site.nextBatch.badge = v; },
     "batch-title": (v) => { site.nextBatch.title = v; },
-    "batch-subtitle": (v) => { site.nextBatch.subtitle = v; },
+    "batch-eyebrow": (v) => { site.nextBatch.cardEyebrow = v; },
+    "batch-date": (v) => { site.nextBatch.dateTitle = v; },
+    "batch-text": (v) => { site.nextBatch.cardText = v; },
+    "batch-cta-label": (v) => { site.nextBatch.ctaLabel = v; site.community.label = v; },
+    "batch-cta-url": (v) => { site.nextBatch.ctaUrl = v; site.community.url = v; },
+    "community-float": (v) => {
+      if (!site.community) site.community = {};
+      site.community.enabled = v;
+      site.community.floating = v;
+    },
     "site-name": (v) => { site.siteName = v; site.meta.title = v; },
     "meta-title": (v) => { site.meta.title = v; },
     "meta-desc": (v) => { site.meta.description = v; }
