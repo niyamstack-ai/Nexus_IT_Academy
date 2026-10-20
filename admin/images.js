@@ -2,12 +2,33 @@ let imagePresets = {};
 let cropper = null;
 let cropCallback = null;
 let cropPreset = null;
+let mediaPickCallback = null;
 
 async function loadImagePresets() {
   if (Object.keys(imagePresets).length) return imagePresets;
   const data = await fetch("/api/admin/image-presets").then((r) => r.json());
   imagePresets = data.presets || {};
   return imagePresets;
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadImageDataUrl(dataUrl, preset) {
+  const res = await fetch("/api/admin/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image: dataUrl, preset: preset || "partnerLogo" })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Upload failed");
+  return data;
 }
 
 function openCropModal(presetId, currentUrl, onDone) {
@@ -63,14 +84,7 @@ async function uploadCroppedImage() {
     : { maxWidth: p.width, maxHeight: p.height, imageSmoothingQuality: "high" };
   const canvas = cropper.getCroppedCanvas(canvasOpts);
   const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-
-  const res = await fetch("/api/admin/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image: dataUrl, preset: cropPreset })
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Upload failed");
+  const data = await uploadImageDataUrl(dataUrl, cropPreset);
 
   document.getElementById("crop-modal").classList.add("hidden");
   if (cropper) {
@@ -80,6 +94,47 @@ async function uploadCroppedImage() {
   if (cropCallback) cropCallback(data.url, data);
   if (window.showToast) window.showToast(`Image uploaded (${data.sizeKB} KB, compressed)`);
   cropCallback = null;
+}
+
+function closeMediaLibrary() {
+  document.getElementById("media-library-modal")?.classList.add("hidden");
+  mediaPickCallback = null;
+}
+
+async function openMediaLibrary(onPick) {
+  mediaPickCallback = onPick || null;
+  const modal = document.getElementById("media-library-modal");
+  const grid = document.getElementById("media-library-grid");
+  if (!modal || !grid) return;
+  grid.innerHTML = `<p class="card-desc">Loading…</p>`;
+  modal.classList.remove("hidden");
+  try {
+    const res = await fetch("/api/admin/media");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load media");
+    const files = data.files || [];
+    if (!files.length) {
+      grid.innerHTML = `<p class="card-desc">No uploaded images yet. Upload one from an image field first.</p>`;
+      return;
+    }
+    grid.innerHTML = files
+      .map(
+        (f) => `<button type="button" class="media-thumb" data-media-url="${f.url.replace(/"/g, "")}" title="${f.name}">
+        <img src="${f.url}" alt="${f.name}" loading="lazy">
+        <span>${f.sizeKB} KB</span>
+      </button>`
+      )
+      .join("");
+    grid.querySelectorAll("[data-media-url]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const url = btn.dataset.mediaUrl;
+        if (mediaPickCallback) mediaPickCallback(url);
+        closeMediaLibrary();
+      });
+    });
+  } catch (err) {
+    grid.innerHTML = `<p class="form-error">${err.message}</p>`;
+  }
 }
 
 function setImagePreview(box, url) {
@@ -107,6 +162,11 @@ function createImageField(label, value, presetId, onChange) {
   const uploadBtn = document.createElement("button");
   uploadBtn.type = "button";
   uploadBtn.className = "btn btn-secondary btn-sm";
+
+  const libraryBtn = document.createElement("button");
+  libraryBtn.type = "button";
+  libraryBtn.className = "btn btn-ghost btn-sm";
+  libraryBtn.textContent = "Library";
 
   const clearBtn = document.createElement("button");
   clearBtn.type = "button";
@@ -137,6 +197,15 @@ function createImageField(label, value, presetId, onChange) {
     });
   };
 
+  libraryBtn.onclick = () => {
+    openMediaLibrary((url) => {
+      onChange(url);
+      syncUi(url);
+      if (window.markDirty) window.markDirty();
+      if (window.showToast) window.showToast("Image selected from library");
+    });
+  };
+
   clearBtn.onclick = () => {
     if (!confirm("Remove this image?")) return;
     onChange("");
@@ -153,7 +222,7 @@ function createImageField(label, value, presetId, onChange) {
     if (window.markDirty) window.markDirty();
   });
 
-  btnRow.append(uploadBtn, clearBtn);
+  btnRow.append(uploadBtn, libraryBtn, clearBtn);
   actions.append(btnRow, urlInput);
   wrap.innerHTML = `<span class="field-label">${label}</span>`;
   wrap.append(preview, actions);
@@ -178,4 +247,28 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("crop-upload-btn")?.addEventListener("click", () => {
     uploadCroppedImage().catch((err) => alert(err.message));
   });
+
+  document.getElementById("crop-from-library-btn")?.addEventListener("click", () => {
+    openMediaLibrary(async (url) => {
+      try {
+        const abs = url.startsWith("http") ? url : `${location.origin}${url}`;
+        const res = await fetch(abs);
+        const blob = await res.blob();
+        const file = new File([blob], "library-image.webp", { type: blob.type || "image/webp" });
+        initCropper(file);
+      } catch (err) {
+        alert(err.message || "Could not load library image");
+      }
+    });
+  });
+
+  document.getElementById("media-library-close")?.addEventListener("click", closeMediaLibrary);
+  document.getElementById("media-library-modal")?.addEventListener("click", (e) => {
+    if (e.target?.id === "media-library-modal") closeMediaLibrary();
+  });
 });
+
+window.fileToDataUrl = fileToDataUrl;
+window.uploadImageDataUrl = uploadImageDataUrl;
+window.openMediaLibrary = openMediaLibrary;
+window.closeMediaLibrary = closeMediaLibrary;

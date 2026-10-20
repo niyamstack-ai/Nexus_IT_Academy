@@ -45,12 +45,19 @@
         <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="custom">Custom</button>
       </div>
       <div class="topbar-actions">
+        <div class="history-btns" role="group" aria-label="Edit history">
+          <button type="button" id="undo-btn" class="btn btn-ghost btn-sm" title="Undo (Ctrl+Z)" disabled>Undo</button>
+          <button type="button" id="redo-btn" class="btn btn-ghost btn-sm" title="Redo (Ctrl+Y)" disabled>Redo</button>
+          <button type="button" id="discard-btn" class="btn btn-ghost btn-sm hidden" title="Discard unsaved changes">Discard</button>
+        </div>
         <div class="theme-menu-wrap">
           <button type="button" id="theme-menu-btn" class="btn btn-secondary">Theme settings ▾</button>
           <div id="theme-menu" class="theme-menu hidden">
             <button type="button" data-goto="themes">Themes & fonts</button>
             <button type="button" data-goto="settings">Site settings</button>
             <button type="button" data-goto="domain">Domain & go live</button>
+            <button type="button" id="history-btn">Version history</button>
+            <button type="button" id="media-library-btn">Image library</button>
             <button type="button" id="export-btn">Export backup</button>
             <a href="/" target="_blank" rel="noopener">View live site ↗</a>
             <button type="button" id="reset-btn">Restore template…</button>
@@ -58,7 +65,7 @@
           </div>
         </div>
         <button type="button" id="refresh-preview" class="btn btn-secondary">Refresh</button>
-        <button type="button" id="save-btn" class="btn btn-primary">Save</button>
+        <button type="button" id="save-btn" class="btn btn-primary" disabled>Saved</button>
       </div>
     </header>
 
@@ -113,6 +120,28 @@
     </div>
   </div>
 
+  <div id="version-history-modal" class="crop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="version-history-title">
+    <div class="crop-modal-card catalog-modal-card catalog-modal-card--wide">
+      <div class="catalog-modal-head">
+        <h3 id="version-history-title">Version history</h3>
+        <button type="button" id="version-history-close" class="btn btn-ghost btn-sm" title="Close">✕</button>
+      </div>
+      <p class="card-desc">Last published versions. Restore replaces the live site content (export a backup first if unsure).</p>
+      <div id="version-history-list" class="catalog-list"></div>
+    </div>
+  </div>
+
+  <div id="media-library-modal" class="crop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="media-library-title">
+    <div class="crop-modal-card catalog-modal-card catalog-modal-card--wide">
+      <div class="catalog-modal-head">
+        <h3 id="media-library-title">Image library</h3>
+        <button type="button" id="media-library-close" class="btn btn-ghost btn-sm" title="Close">✕</button>
+      </div>
+      <p class="card-desc">Reuse an uploaded image, or pick one for the current field.</p>
+      <div id="media-library-grid" class="media-library-grid"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
 
   <div id="crop-modal" class="crop-modal hidden">
@@ -123,6 +152,7 @@
         <span>Choose image from computer</span>
         <input type="file" id="crop-file-input" accept="image/*">
       </label>
+      <button type="button" id="crop-from-library-btn" class="btn btn-secondary btn-sm" style="margin-bottom:10px">Pick from library</button>
       <div class="crop-preview-wrap">
         <img id="crop-preview-img" alt="Crop preview">
       </div>

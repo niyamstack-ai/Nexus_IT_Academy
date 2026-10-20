@@ -110,10 +110,116 @@ let lockFontsOnThemeChange = true;
 /** Expanded section ids in the left tree (for nested blocks) */
 const expandedTreeSections = new Set();
 
+/** Undo / redo + last published snapshot */
+let savedSnapshot = null;
+let historyCheckpoint = null;
+let undoStack = [];
+let redoStack = [];
+let historyTimer = null;
+let applyingHistory = false;
+const HISTORY_LIMIT = 40;
+
 const $ = (sel) => document.querySelector(sel);
 const previewFrame = $("#preview-frame");
 function ed() {
   return $("#editor-panel");
+}
+
+function cloneSite(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function updateSaveUi() {
+  const saveBtn = $("#save-btn");
+  const discardBtn = $("#discard-btn");
+  if (saveBtn) {
+    if (isDirty) {
+      saveBtn.textContent = "Save";
+      saveBtn.disabled = false;
+      saveBtn.classList.add("btn-pulse");
+      saveBtn.title = "Save & publish changes";
+    } else {
+      saveBtn.textContent = "Saved";
+      saveBtn.disabled = true;
+      saveBtn.classList.remove("btn-pulse");
+      saveBtn.title = "All changes published";
+    }
+  }
+  discardBtn?.classList.toggle("hidden", !isDirty);
+  updateUndoUi();
+}
+
+function updateUndoUi() {
+  const undoBtn = $("#undo-btn");
+  const redoBtn = $("#redo-btn");
+  if (undoBtn) undoBtn.disabled = !undoStack.length;
+  if (redoBtn) redoBtn.disabled = !redoStack.length;
+}
+
+function initEditHistory() {
+  historyCheckpoint = cloneSite(site);
+  undoStack = [];
+  redoStack = [];
+  clearTimeout(historyTimer);
+  updateUndoUi();
+}
+
+function captureHistoryCheckpoint() {
+  if (applyingHistory || !site || !historyCheckpoint) return;
+  const now = JSON.stringify(site);
+  const prev = JSON.stringify(historyCheckpoint);
+  if (now === prev) return;
+  undoStack.push(historyCheckpoint);
+  if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+  redoStack = [];
+  historyCheckpoint = cloneSite(site);
+  updateUndoUi();
+}
+
+function refreshAfterHistory() {
+  ensureSiteShapes();
+  ensureSectionOrder();
+  renderSectionTree();
+  renderEditor();
+  scheduleLivePreview();
+  highlightSectionInPreview();
+  updateSaveUi();
+}
+
+function undoEdit() {
+  if (!undoStack.length) return;
+  applyingHistory = true;
+  redoStack.push(cloneSite(site));
+  site = undoStack.pop();
+  historyCheckpoint = cloneSite(site);
+  applyingHistory = false;
+  isDirty = JSON.stringify(site) !== savedSnapshot;
+  refreshAfterHistory();
+  showToast("Undid last change");
+}
+
+function redoEdit() {
+  if (!redoStack.length) return;
+  applyingHistory = true;
+  undoStack.push(cloneSite(site));
+  site = redoStack.pop();
+  historyCheckpoint = cloneSite(site);
+  applyingHistory = false;
+  isDirty = JSON.stringify(site) !== savedSnapshot;
+  refreshAfterHistory();
+  showToast("Redid change");
+}
+
+async function discardChanges() {
+  if (!isDirty) return;
+  if (!confirm("Discard all unsaved changes and reload the last published version?")) return;
+  site = await api("/api/admin/site");
+  savedSnapshot = JSON.stringify(site);
+  clearDirty();
+  initEditHistory();
+  clearSelection();
+  refreshPreview();
+  showToast("Discarded unsaved changes");
 }
 
 async function api(path, options = {}) {
@@ -136,18 +242,25 @@ function showToast(msg, type = "success") {
 }
 
 function markDirty() {
+  if (applyingHistory) {
+    scheduleLivePreview();
+    return;
+  }
   if (!isDirty) {
     isDirty = true;
     $("#unsaved-badge")?.classList.remove("hidden");
-    $("#save-btn")?.classList.add("btn-pulse");
   }
+  clearTimeout(historyTimer);
+  historyTimer = setTimeout(captureHistoryCheckpoint, 350);
+  updateSaveUi();
   scheduleLivePreview();
 }
 
 function clearDirty() {
   isDirty = false;
   $("#unsaved-badge")?.classList.add("hidden");
-  $("#save-btn")?.classList.remove("btn-pulse");
+  savedSnapshot = site ? JSON.stringify(site) : null;
+  updateSaveUi();
 }
 
 function ensureSectionOrder() {
@@ -1157,13 +1270,46 @@ function renderEditor() {
 
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h3>Logos</h3><p class="card-desc">Add, replace, or remove partner logos. Drag ⋮⋮ to reorder.</p>`;
+    card.innerHTML = `<h3>Logos</h3>
+      <p class="card-desc">Add, replace, or remove partner logos. Drag ⋮⋮ to reorder.</p>
+      <div class="bulk-upload-row">
+        <label class="btn btn-secondary btn-sm bulk-upload-label">
+          Bulk upload logos
+          <input type="file" id="partners-bulk-upload" accept="image/*" multiple hidden>
+        </label>
+        <span class="card-desc" id="partners-bulk-status"></span>
+      </div>`;
     ed().appendChild(card);
     card.appendChild(listField("Logo", site.hiringPartners.logos, [
       { key: "url", label: "Company logo", type: "image", preset: "partnerLogo" },
       { key: "alt", label: "Company name" },
       { key: "link", label: "Optional link URL", placeholder: "https://" }
-    ], () => {}));
+    ], () => {}, { addLabel: "+ Add logo" }));
+
+    $("#partners-bulk-upload")?.addEventListener("change", async (e) => {
+      const files = [...(e.target.files || [])];
+      e.target.value = "";
+      if (!files.length) return;
+      const status = $("#partners-bulk-status");
+      if (status) status.textContent = `Uploading 0/${files.length}…`;
+      let done = 0;
+      for (const file of files) {
+        try {
+          const dataUrl = await window.fileToDataUrl(file);
+          const uploaded = await window.uploadImageDataUrl(dataUrl, "partnerLogo");
+          const name = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+          site.hiringPartners.logos.push({ url: uploaded.url, alt: name, link: "" });
+          done += 1;
+          if (status) status.textContent = `Uploaded ${done}/${files.length}`;
+        } catch (err) {
+          showToast(err.message || "Bulk upload failed", "error");
+        }
+      }
+      markDirty();
+      renderEditor();
+      scheduleLivePreview();
+      showToast(`Added ${done} partner logo${done === 1 ? "" : "s"}`);
+    });
   }
 
   if (activeSection === "alumni") {
@@ -1476,10 +1622,67 @@ function wireGotoAndLocalize() {
 }
 
 async function saveSite() {
-  await api("/api/admin/site", { method: "PUT", body: JSON.stringify(site) });
+  if (!isDirty) return;
+  const res = await api("/api/admin/site", { method: "PUT", body: JSON.stringify(site) });
+  if (res.site) site = res.site;
   clearDirty();
+  initEditHistory();
   showToast("Saved & published successfully!");
   refreshPreview();
+}
+
+async function openVersionHistory() {
+  $("#theme-menu")?.classList.add("hidden");
+  const modal = $("#version-history-modal");
+  const list = $("#version-history-list");
+  if (!modal || !list) return;
+  list.innerHTML = `<p class="card-desc">Loading…</p>`;
+  modal.classList.remove("hidden");
+  try {
+    const data = await api("/api/admin/versions");
+    const versions = data.versions || [];
+    if (!versions.length) {
+      list.innerHTML = `<p class="card-desc">No previous publishes yet. Versions appear after you Save.</p>`;
+      return;
+    }
+    list.innerHTML = versions.map((v) => {
+      const when = v.savedAt ? new Date(v.savedAt).toLocaleString() : v.id;
+      return `<div class="catalog-item catalog-item--row">
+        <div>
+          <strong>${escapeHtml(when)}</strong>
+          <span>${escapeHtml(v.siteName || "")}</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" data-restore-version="${escapeAttr(v.id)}">Restore</button>
+      </div>`;
+    }).join("");
+    list.querySelectorAll("[data-restore-version]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (isDirty && !confirm("You have unsaved changes. Restore anyway?")) return;
+        if (!confirm("Restore this published version? Current live content will be replaced (a new history entry is kept).")) return;
+        try {
+          const res = await api(`/api/admin/versions/${encodeURIComponent(btn.dataset.restoreVersion)}/restore`, {
+            method: "POST",
+            body: "{}"
+          });
+          site = res.site;
+          clearDirty();
+          initEditHistory();
+          clearSelection();
+          closeVersionHistory();
+          refreshPreview();
+          showToast("Version restored & published");
+        } catch (e) {
+          showToast(e.message, "error");
+        }
+      });
+    });
+  } catch (e) {
+    list.innerHTML = `<p class="form-error">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function closeVersionHistory() {
+  $("#version-history-modal")?.classList.add("hidden");
 }
 
 function refreshPreview() {
@@ -1518,6 +1721,7 @@ async function saferReset() {
   const res = await api("/api/admin/reset", { method: "POST" });
   site = res.site;
   clearDirty();
+  initEditHistory();
   clearSelection();
   refreshPreview();
   showToast("Restored template defaults");
@@ -1662,6 +1866,7 @@ async function initApp() {
   activeSection = "none";
   selectedCanvasSection = null;
   clearDirty();
+  initEditHistory();
   setCanvasDevice(canvasDevice);
   initPanelSplitter();
   initCanvasResize();
@@ -1703,6 +1908,21 @@ $("#logout-btn")?.addEventListener("click", async () => {
 });
 
 $("#save-btn")?.addEventListener("click", () => saveSite().catch((e) => showToast(e.message, "error")));
+$("#undo-btn")?.addEventListener("click", () => undoEdit());
+$("#redo-btn")?.addEventListener("click", () => redoEdit());
+$("#discard-btn")?.addEventListener("click", () => discardChanges().catch((e) => showToast(e.message, "error")));
+$("#history-btn")?.addEventListener("click", () => openVersionHistory().catch((e) => showToast(e.message, "error")));
+$("#version-history-close")?.addEventListener("click", closeVersionHistory);
+$("#version-history-modal")?.addEventListener("click", (e) => {
+  if (e.target?.id === "version-history-modal") closeVersionHistory();
+});
+$("#media-library-btn")?.addEventListener("click", () => {
+  $("#theme-menu")?.classList.add("hidden");
+  window.openMediaLibrary?.((url) => {
+    navigator.clipboard?.writeText(url).catch(() => {});
+    showToast("Image URL copied — paste into any image field");
+  });
+});
 $("#reset-btn")?.addEventListener("click", () => {
   $("#theme-menu")?.classList.add("hidden");
   saferReset().catch((e) => showToast(e.message, "error"));
@@ -1710,6 +1930,25 @@ $("#reset-btn")?.addEventListener("click", () => {
 $("#export-btn")?.addEventListener("click", () => {
   $("#theme-menu")?.classList.add("hidden");
   exportBackup();
+});
+
+document.addEventListener("keydown", (e) => {
+  const tag = (e.target?.tagName || "").toLowerCase();
+  const typing = tag === "input" || tag === "textarea" || e.target?.isContentEditable;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+    if (typing) return;
+    e.preventDefault();
+    undoEdit();
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
+    if (typing) return;
+    e.preventDefault();
+    redoEdit();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    saveSite().catch((err) => showToast(err.message, "error"));
+  }
 });
 
 $("#refresh-preview")?.addEventListener("click", () => {

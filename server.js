@@ -7,11 +7,12 @@ function envValue(key, fallback) {
 const express = require("express");
 const session = require("express-session");
 const path = require("path");
-const { getSite, saveSite, resetSite } = require("./lib/store");
+const fs = require("fs");
+const { getSite, saveSite, resetSite, listVersions, getVersion, restoreVersion } = require("./lib/store");
 const { renderSite } = require("./lib/renderer");
 const { THEME_PRESETS, FONT_OPTIONS } = require("./lib/themes");
 const { buildDnsRecords, buildNginxConfig, buildSetupSteps, isValidIpv4 } = require("./lib/domain");
-const { IMAGE_PRESETS, ensureUploadDir, processAndSaveImage, localizeSiteImages } = require("./lib/images");
+const { IMAGE_PRESETS, ensureUploadDir, processAndSaveImage, localizeSiteImages, UPLOAD_DIR } = require("./lib/images");
 
 const app = express();
 const PORT = Number(envValue("PORT", "3000")) || 3000;
@@ -106,6 +107,41 @@ app.post("/api/admin/reset", requireAuth, (req, res) => {
   const site = resetSite();
   req.session.previewDraft = null;
   res.json({ ok: true, site });
+});
+
+app.get("/api/admin/versions", requireAuth, (req, res) => {
+  res.json({ versions: listVersions() });
+});
+
+app.get("/api/admin/versions/:id", requireAuth, (req, res) => {
+  const version = getVersion(req.params.id);
+  if (!version) return res.status(404).json({ error: "Version not found" });
+  res.json({ version });
+});
+
+app.post("/api/admin/versions/:id/restore", requireAuth, (req, res) => {
+  const site = restoreVersion(req.params.id);
+  if (!site) return res.status(404).json({ error: "Version not found" });
+  req.session.previewDraft = null;
+  res.json({ ok: true, site });
+});
+
+app.get("/api/admin/media", requireAuth, (req, res) => {
+  ensureUploadDir();
+  const files = fs
+    .readdirSync(UPLOAD_DIR)
+    .filter((f) => /\.(webp|jpe?g|png|gif|svg)$/i.test(f))
+    .map((f) => {
+      const st = fs.statSync(path.join(UPLOAD_DIR, f));
+      return {
+        url: `/uploads/${f}`,
+        name: f,
+        sizeKB: Math.round(st.size / 1024),
+        mtime: st.mtimeMs
+      };
+    })
+    .sort((a, b) => b.mtime - a.mtime);
+  res.json({ files });
 });
 
 app.get("/api/admin/themes", requireAuth, (req, res) => {
