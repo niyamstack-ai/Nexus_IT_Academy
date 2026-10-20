@@ -390,6 +390,56 @@ body {
   font-size: 0.78rem;
 }
 
+.catalog-search {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.catalog-list--sections {
+  max-height: 58vh;
+}
+
+.catalog-group-label {
+  margin: 14px 0 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.catalog-item--section {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.catalog-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.catalog-item-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .structure-actions {
   display: flex;
   flex-wrap: wrap;

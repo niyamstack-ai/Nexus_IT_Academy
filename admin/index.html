@@ -110,13 +110,14 @@
   </div>
 
   <div id="section-catalog-modal" class="crop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="section-catalog-title">
-    <div class="crop-modal-card catalog-modal-card">
+    <div class="crop-modal-card catalog-modal-card catalog-modal-card--wide">
       <div class="catalog-modal-head">
         <h3 id="section-catalog-title">Add section</h3>
         <button type="button" id="section-catalog-close" class="btn btn-ghost btn-sm" title="Close">✕</button>
       </div>
-      <p class="card-desc">Choose a section to add or re-show on the page.</p>
-      <div id="section-catalog-list" class="catalog-list"></div>
+      <p class="card-desc">Pick a Shopify-style section to insert on the page. You can add most blocks more than once.</p>
+      <input type="search" id="section-catalog-search" class="catalog-search" placeholder="Search sections…" autocomplete="off">
+      <div id="section-catalog-list" class="catalog-list catalog-list--sections"></div>
     </div>
   </div>
 

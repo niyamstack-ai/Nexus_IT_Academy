@@ -73,18 +73,25 @@ const THEME_SECTIONS = ["themes", "domain", "settings"];
 const LOCKED_SECTIONS = new Set(["ticker", "navigation", "header", "contact"]);
 const REMOVABLE_SECTIONS = DEFAULT_SECTION_ORDER.filter((id) => id !== "contact");
 
-const SECTION_CATALOG = [
-  { id: "hero", title: "Hero", desc: "Main headline and feature bullets" },
-  { id: "partners", title: "Hiring Partners", desc: "Logo carousel" },
-  { id: "alumni", title: "Alumni Spotlight", desc: "Placement photo stories" },
-  { id: "journey", title: "Journey Steps", desc: "Step-by-step journey" },
-  { id: "guarantee", title: "Placement Guarantee", desc: "Guarantee headline" },
-  { id: "course", title: "Course / Syllabus", desc: "Scrum Master program" },
-  { id: "jobs", title: "Job Profiles", desc: "Optional job profile cards" },
-  { id: "fees", title: "Fee Structure", desc: "Pay-after-placement steps" },
-  { id: "eligibility", title: "Eligibility", desc: "Who can apply" },
-  { id: "batch", title: "Next Batch", desc: "Upcoming batch & WhatsApp CTA" }
-];
+let SECTION_CATALOG = [];
+
+function isBlockId(id) {
+  return typeof id === "string" && id.startsWith("blk_");
+}
+
+function blockLabel(id) {
+  const block = site?.blocks?.[id];
+  if (!block) return "Custom section";
+  const fromCatalog = SECTION_CATALOG.find((s) => s.type === block.type);
+  const base = fromCatalog?.title || block.type || "Custom section";
+  const title = block.title || block.label;
+  return title ? `${base}: ${String(title).slice(0, 28)}` : base;
+}
+
+function sectionLabel(id) {
+  if (isBlockId(id)) return blockLabel(id);
+  return SECTION_LABELS[id] || id;
+}
 
 const SECTIONS = [
   ...HEADER_TREE.map((s) => ({ id: s.id, title: s.title, desc: SECTION_DESC[s.id] })),
@@ -265,10 +272,13 @@ function clearDirty() {
 
 function ensureSectionOrder() {
   if (!site.sectionHidden || typeof site.sectionHidden !== "object") site.sectionHidden = {};
+  if (!site.blocks || typeof site.blocks !== "object") site.blocks = {};
   if (!Array.isArray(site.sectionOrder) || !site.sectionOrder.length) {
     site.sectionOrder = DEFAULT_SECTION_ORDER.slice();
   }
-  site.sectionOrder = site.sectionOrder.filter((id) => DEFAULT_SECTION_ORDER.includes(id));
+  site.sectionOrder = site.sectionOrder.filter(
+    (id) => DEFAULT_SECTION_ORDER.includes(id) || (isBlockId(id) && site.blocks[id])
+  );
   if (!site.sectionOrder.includes("contact")) site.sectionOrder.push("contact");
   // Migrate legacy jobs.enabled=false into sectionHidden
   if (site.jobProfiles?.enabled === false && site.sectionHidden.jobs == null && site.sectionOrder.includes("jobs")) {
@@ -392,8 +402,9 @@ function removeSectionFromPage(id) {
     showToast("This section is locked and cannot be removed", "error");
     return;
   }
-  if (!confirm(`Remove “${SECTION_LABELS[id] || id}” from the page?\n\nYou can add it again later from Add section.`)) return;
+  if (!confirm(`Remove “${sectionLabel(id)}” from the page?\n\nYou can add it again later from Add section.`)) return;
   site.sectionOrder = site.sectionOrder.filter((s) => s !== id);
+  if (isBlockId(id) && site.blocks?.[id]) delete site.blocks[id];
   if (activeSection === id) clearSelection();
   markDirty();
   renderSectionTree();
@@ -401,49 +412,134 @@ function removeSectionFromPage(id) {
   showToast("Section removed — click Save when ready");
 }
 
-function addSectionToPage(id) {
-  ensureSectionOrder();
-  if (site.sectionOrder.includes(id)) {
-    setSectionVisible(id, true);
-    selectFromCanvas(id);
-    markDirty();
-    scheduleLivePreview();
-    return;
-  }
-  if (!DEFAULT_SECTION_ORDER.includes(id)) return;
+function insertBeforeContact(id) {
   const contactIdx = site.sectionOrder.indexOf("contact");
   if (contactIdx >= 0) site.sectionOrder.splice(contactIdx, 0, id);
   else site.sectionOrder.push(id);
-  setSectionVisible(id, true);
+}
+
+async function addBuiltinSection(type) {
+  ensureSectionOrder();
+  if (site.sectionOrder.includes(type)) {
+    setSectionVisible(type, true);
+    closeSectionCatalog();
+    selectFromCanvas(type);
+    markDirty();
+    scheduleLivePreview();
+    showToast(`Showing ${sectionLabel(type)}`);
+    return;
+  }
+  if (!DEFAULT_SECTION_ORDER.includes(type)) return;
+  insertBeforeContact(type);
+  setSectionVisible(type, true);
   ensureSiteShapes();
   markDirty();
   closeSectionCatalog();
-  selectFromCanvas(id);
+  selectFromCanvas(type);
   scheduleLivePreview();
-  showToast(`Added ${SECTION_LABELS[id] || id}`);
+  showToast(`Added ${sectionLabel(type)}`);
 }
 
-function openSectionCatalog() {
+async function addCatalogSection(entry) {
+  if (!entry) return;
+  if (entry.kind === "builtin" || entry.unique) {
+    await addBuiltinSection(entry.type);
+    return;
+  }
+  try {
+    const created = await api("/api/admin/section-catalog/create", {
+      method: "POST",
+      body: JSON.stringify({ type: entry.type })
+    });
+    if (!site.blocks) site.blocks = {};
+    site.blocks[created.id] = created.data;
+    insertBeforeContact(created.id);
+    markDirty();
+    closeSectionCatalog();
+    selectFromCanvas(created.id);
+    scheduleLivePreview();
+    showToast(`Added ${entry.title}`);
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+function catalogIcon(icon) {
+  const map = {
+    text: "T",
+    image: "▣",
+    slider: "⇆",
+    button: "⬚",
+    hero: "✦",
+    block: "▢"
+  };
+  return map[icon] || "▢";
+}
+
+function renderCatalogList(filter = "") {
+  const list = $("#section-catalog-list");
+  if (!list) return;
+  const q = filter.trim().toLowerCase();
+  const items = (SECTION_CATALOG || []).filter((s) => {
+    if (!q) return true;
+    return `${s.title} ${s.desc} ${s.type}`.toLowerCase().includes(q);
+  });
+
+  if (!items.length) {
+    list.innerHTML = `<p class="card-desc">No sections match “${escapeHtml(filter)}”.</p>`;
+    return;
+  }
+
+  const builtins = items.filter((s) => s.kind === "builtin");
+  const blocks = items.filter((s) => s.kind !== "builtin");
+
+  function row(s) {
+    const onPage = s.unique && site.sectionOrder.includes(s.type);
+    const hidden = onPage && !isSectionVisible(s.type);
+    const badge = hidden ? "Hidden — click to show" : onPage ? "Already on page — click to select" : s.desc;
+    return `<button type="button" class="catalog-item catalog-item--section" data-catalog-type="${escapeAttr(s.type)}" data-catalog-kind="${escapeAttr(s.kind || "block")}">
+      <span class="catalog-icon" aria-hidden="true">${catalogIcon(s.icon)}</span>
+      <span class="catalog-item-copy">
+        <strong>${escapeHtml(s.title)}</strong>
+        <span>${escapeHtml(badge)}</span>
+      </span>
+    </button>`;
+  }
+
+  list.innerHTML = `
+    ${builtins.length ? `<div class="catalog-group-label">Page sections</div>${builtins.map(row).join("")}` : ""}
+    ${blocks.length ? `<div class="catalog-group-label">Addable blocks</div>${blocks.map(row).join("")}` : ""}
+  `;
+
+  list.querySelectorAll("[data-catalog-type]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const entry = SECTION_CATALOG.find(
+        (s) => s.type === btn.dataset.catalogType && (s.kind || "block") === (btn.dataset.catalogKind || "block")
+      ) || SECTION_CATALOG.find((s) => s.type === btn.dataset.catalogType);
+      addCatalogSection(entry);
+    });
+  });
+}
+
+async function openSectionCatalog() {
   ensureSectionOrder();
   const modal = $("#section-catalog-modal");
   const list = $("#section-catalog-list");
+  const search = $("#section-catalog-search");
   if (!modal || !list) return;
-  const missing = SECTION_CATALOG.filter((s) => !site.sectionOrder.includes(s.id));
-  const hidden = SECTION_CATALOG.filter((s) => site.sectionOrder.includes(s.id) && !isSectionVisible(s.id));
-  if (!missing.length && !hidden.length) {
-    list.innerHTML = `<p class="card-desc">All available sections are already on the page and visible.</p>`;
-  } else {
-    list.innerHTML = [
-      ...hidden.map((s) => `<button type="button" class="catalog-item" data-add-section="${s.id}" data-catalog-action="show">
-        <strong>${s.title}</strong><span>Currently hidden — click to show</span></button>`),
-      ...missing.map((s) => `<button type="button" class="catalog-item" data-add-section="${s.id}" data-catalog-action="add">
-        <strong>${s.title}</strong><span>${s.desc}</span></button>`)
-    ].join("");
-  }
+  list.innerHTML = `<p class="card-desc">Loading sections…</p>`;
   modal.classList.remove("hidden");
-  list.querySelectorAll("[data-add-section]").forEach((btn) => {
-    btn.addEventListener("click", () => addSectionToPage(btn.dataset.addSection));
-  });
+  try {
+    if (!SECTION_CATALOG.length) {
+      const data = await api("/api/admin/section-catalog");
+      SECTION_CATALOG = data.catalog || [];
+    }
+    if (search) search.value = "";
+    renderCatalogList("");
+    search?.focus();
+  } catch (e) {
+    list.innerHTML = `<p class="form-error">${escapeHtml(e.message)}</p>`;
+  }
 }
 
 function closeSectionCatalog() {
@@ -452,6 +548,7 @@ function closeSectionCatalog() {
 
 function moveSectionInOrder(id, direction) {
   ensureSectionOrder();
+  if (id === "contact" || LOCKED_SECTIONS.has(id)) return;
   const order = site.sectionOrder.filter((s) => s !== "contact");
   const idx = order.indexOf(id);
   if (idx < 0) return;
@@ -468,7 +565,7 @@ function moveSectionInOrder(id, direction) {
 
 function editorToCanvasId(editorId) {
   if (editorId === "navigation") return "header";
-  if (DEFAULT_SECTION_ORDER.includes(editorId) || editorId === "ticker") return editorId;
+  if (DEFAULT_SECTION_ORDER.includes(editorId) || editorId === "ticker" || isBlockId(editorId)) return editorId;
   return null;
 }
 
@@ -493,7 +590,7 @@ async function syncLivePreview() {
 }
 
 function selectFromCanvas(canvasId) {
-  const editorId = CANVAS_TO_EDITOR[canvasId] || canvasId;
+  const editorId = isBlockId(canvasId) ? canvasId : (CANVAS_TO_EDITOR[canvasId] || canvasId);
   selectedCanvasSection = canvasId;
   activeSection = editorId;
   renderSectionTree();
@@ -657,11 +754,11 @@ function renderSectionTree() {
 
   const templateIds = site.sectionOrder.filter((id) => id !== "contact");
   const templateHtml = templateIds.map((id) => {
-    return treeItemHtml(id, SECTION_LABELS[id] || id, {
+    return treeItemHtml(id, sectionLabel(id), {
       draggable: true,
       visible: isSectionVisible(id),
       hideable: true
-    }) + treeBlocksHtml(id);
+    }) + (isBlockId(id) ? "" : treeBlocksHtml(id));
   }).join("");
 
   const headerHtml = HEADER_TREE.map((s) => {
@@ -777,8 +874,9 @@ function renderSectionTree() {
       const fromId = e.dataTransfer.getData("application/x-nexus-section") || e.dataTransfer.getData("text/plain") || dragId;
       const toId = grip.dataset.drag || row.dataset.section;
       if (!fromId || !toId || fromId === toId) return;
-      if (!DEFAULT_SECTION_ORDER.includes(fromId) || fromId === "contact") return;
-      if (!DEFAULT_SECTION_ORDER.includes(toId) || toId === "contact") return;
+      const known = (id) => DEFAULT_SECTION_ORDER.includes(id) || isBlockId(id);
+      if (!known(fromId) || fromId === "contact") return;
+      if (!known(toId) || toId === "contact") return;
       const order = site.sectionOrder.filter((id) => id !== "contact");
       const from = order.indexOf(fromId);
       const to = order.indexOf(toId);
@@ -1246,9 +1344,163 @@ function renderEmptyInspector() {
     </div>`;
 }
 
+function renderBlockEditor(blockId) {
+  const block = site.blocks?.[blockId];
+  if (!block) {
+    ed().innerHTML = `<div class="card"><p class="form-error">Block not found.</p></div>`;
+    return;
+  }
+  const card = document.createElement("div");
+  card.className = "card";
+  let body = `<h3>${escapeHtml(sectionLabel(blockId))}</h3>
+    <p class="card-desc">Type: ${escapeHtml(block.type)}</p>`;
+
+  if ("title" in block) body += field("Title", block.title, "text", "blk-title");
+  if ("subtitle" in block) body += field("Subtitle", block.subtitle, "text", "blk-subtitle");
+  if ("body" in block) body += field("Body text", block.body, "textarea", "blk-body");
+  if ("label" in block) body += field("Button label", block.label, "text", "blk-label");
+  if ("url" in block) body += field("URL", block.url, "url", "blk-url");
+  if ("align" in block) {
+    body += selectField("Alignment", "blk-align", block.align || "center", [
+      ["left", "Left"], ["center", "Center"], ["right", "Right"]
+    ]);
+  }
+  if ("headingFont" in block || ["bold-heading", "modern-bullets", "rich-text", "faq-accordion"].includes(block.type)) {
+    body += fontPickerField("Heading font", "blk-font", block.headingFont || "");
+  }
+  if ("headingSize" in block) body += unitRangeField("Heading size", "blk-size", block.headingSize || 32, 16, 72, 1, "px");
+  if ("headingColor" in block) body += colorHexField("Heading color", "blk-color", block.headingColor || "#121212");
+  if ("bulletStyle" in block) body += bulletStyleField("Bullet style", "blk-bullet", block.bulletStyle || "check-circle");
+  if ("bulletColor" in block) body += colorHexField("Bullet color", "blk-bullet-color", block.bulletColor || "#0aaa7c");
+  if (Array.isArray(block.items) && typeof block.items[0] === "string") {
+    body += field("Items (one per line)", arrayToLines(block.items), "textarea", "blk-items");
+  }
+  if (Array.isArray(block.leftItems)) {
+    body += field("Left items (one per line)", arrayToLines(block.leftItems), "textarea", "blk-left-items");
+  }
+  if (Array.isArray(block.rightItems)) {
+    body += field("Right items (one per line)", arrayToLines(block.rightItems), "textarea", "blk-right-items");
+  }
+  if ("leftTitle" in block) body += field("Left title", block.leftTitle, "text", "blk-left-title");
+  if ("rightTitle" in block) body += field("Right title", block.rightTitle, "text", "blk-right-title");
+  if ("leftLabel" in block) body += field("Left column label", block.leftLabel, "text", "blk-left-label");
+  if ("rightLabel" in block) body += field("Right column label", block.rightLabel, "text", "blk-right-label");
+  if ("openInNewTab" in block) body += field("Open in new tab", !!block.openInNewTab, "checkbox", "blk-newtab");
+  if ("style" in block && block.type === "custom-button") {
+    body += selectField("Button style", "blk-style", block.style || "primary", [
+      ["primary", "Primary"], ["secondary", "Secondary"]
+    ]);
+  }
+  body += unitRangeField("Top padding", "blk-pad-top", block.paddingTop ?? 24, 0, 120, 2, "px");
+  body += unitRangeField("Bottom padding", "blk-pad-bottom", block.paddingBottom ?? 24, 0, 120, 2, "px");
+
+  card.innerHTML = body;
+  ed().appendChild(card);
+
+  bindField("blk-title", (v) => { block.title = v; });
+  bindField("blk-subtitle", (v) => { block.subtitle = v; });
+  bindField("blk-body", (v) => { block.body = v; });
+  bindField("blk-label", (v) => { block.label = v; });
+  bindField("blk-url", (v) => { block.url = v; });
+  bindField("blk-left-title", (v) => { block.leftTitle = v; });
+  bindField("blk-right-title", (v) => { block.rightTitle = v; });
+  bindField("blk-left-label", (v) => { block.leftLabel = v; });
+  bindField("blk-right-label", (v) => { block.rightLabel = v; });
+  bindField("blk-items", (v) => { block.items = linesToArray(v); });
+  bindField("blk-left-items", (v) => { block.leftItems = linesToArray(v); });
+  bindField("blk-right-items", (v) => { block.rightItems = linesToArray(v); });
+  bindField("blk-newtab", (v) => { block.openInNewTab = v; });
+  bindFontPicker("blk-font", (v) => { block.headingFont = v; });
+  bindColorHex("blk-color", (v) => { block.headingColor = v; });
+  bindColorHex("blk-bullet-color", (v) => { block.bulletColor = v; });
+  bindUnitRange("blk-size", (v) => { block.headingSize = parseInt(v, 10) || 32; });
+  bindUnitRange("blk-pad-top", (v) => { block.paddingTop = parseInt(v, 10) || 0; });
+  bindUnitRange("blk-pad-bottom", (v) => { block.paddingBottom = parseInt(v, 10) || 0; });
+  bindBulletStyle("blk-bullet", (v) => { block.bulletStyle = v; });
+  $("#blk-align")?.addEventListener("change", (e) => { block.align = e.target.value; markDirty(); });
+  $("#blk-style")?.addEventListener("change", (e) => { block.style = e.target.value; markDirty(); });
+
+  if (Array.isArray(block.items) && block.items[0] && typeof block.items[0] === "object" && ("q" in block.items[0] || "question" in block.items[0])) {
+    const faqCard = document.createElement("div");
+    faqCard.className = "card";
+    faqCard.innerHTML = `<h3>Questions</h3>`;
+    ed().appendChild(faqCard);
+    block.items.forEach((item) => {
+      if (item.question && !item.q) item.q = item.question;
+      if (item.answer && !item.a) item.a = item.answer;
+    });
+    faqCard.appendChild(listField("FAQ", block.items, [
+      { key: "q", label: "Question" },
+      { key: "a", label: "Answer", type: "textarea" }
+    ], () => {}, { addLabel: "+ Add question" }));
+  }
+
+  if (Array.isArray(block.rows)) {
+    const rowsCard = document.createElement("div");
+    rowsCard.className = "card";
+    rowsCard.innerHTML = `<h3>Comparison rows</h3>`;
+    ed().appendChild(rowsCard);
+    rowsCard.appendChild(listField("Row", block.rows, [
+      { key: "label", label: "Feature" },
+      { key: "left", label: "Left value" },
+      { key: "right", label: "Right value" }
+    ], () => {}, { addLabel: "+ Add row" }));
+  }
+
+  if (Array.isArray(block.steps)) {
+    const stepsCard = document.createElement("div");
+    stepsCard.className = "card";
+    stepsCard.innerHTML = `<h3>Timeline steps</h3>`;
+    ed().appendChild(stepsCard);
+    stepsCard.appendChild(listField("Step", block.steps, [
+      { key: "title", label: "Title" },
+      { key: "text", label: "Text", type: "textarea" }
+    ], () => {}, { addLabel: "+ Add step" }));
+  }
+
+  if (Array.isArray(block.logos)) {
+    const logosCard = document.createElement("div");
+    logosCard.className = "card";
+    logosCard.innerHTML = `<h3>Logos</h3>`;
+    ed().appendChild(logosCard);
+    logosCard.appendChild(listField("Logo", block.logos, [
+      { key: "url", label: "Logo", type: "image", preset: "partnerLogo" },
+      { key: "alt", label: "Name" }
+    ], () => {}, { addLabel: "+ Add logo" }));
+  }
+
+  if (Array.isArray(block.items) && block.items[0] && typeof block.items[0] === "object" && ("image" in block.items[0] || "url" in block.items[0]) && !("q" in block.items[0])) {
+    const mediaCard = document.createElement("div");
+    mediaCard.className = "card";
+    mediaCard.innerHTML = `<h3>Images</h3>`;
+    ed().appendChild(mediaCard);
+    mediaCard.appendChild(listField("Image", block.items, [
+      { key: "image", label: "Image", type: "image", preset: "alumni" },
+      { key: "alt", label: "Alt text" }
+    ], () => {}, { addLabel: "+ Add image" }));
+  }
+
+  if ("image" in block) {
+    const imgCard = document.createElement("div");
+    imgCard.className = "card";
+    imgCard.innerHTML = `<h3>Image</h3>`;
+    ed().appendChild(imgCard);
+    imgCard.appendChild(createImageField("Image", block.image || "", "alumni", (url) => {
+      block.image = url;
+      markDirty();
+    }));
+    const alt = document.createElement("div");
+    alt.innerHTML = field("Alt text", block.alt || "", "text", "blk-alt");
+    imgCard.appendChild(alt.firstChild);
+    bindField("blk-alt", (v) => { block.alt = v; });
+  }
+}
+
 function renderEditor() {
-  const title = SECTION_LABELS[activeSection] || activeSection;
-  const desc = SECTION_DESC[activeSection] || "Edit this section";
+  const title = isBlockId(activeSection) ? sectionLabel(activeSection) : (SECTION_LABELS[activeSection] || activeSection);
+  const desc = isBlockId(activeSection)
+    ? "Custom block — edit content below"
+    : (SECTION_DESC[activeSection] || "Edit this section");
   $("#panel-title").textContent = title;
   $("#panel-desc").textContent = desc;
 
@@ -1261,7 +1513,9 @@ function renderEditor() {
     return;
   }
 
-  if (activeSection === "ticker") {
+  if (isBlockId(activeSection)) {
+    renderBlockEditor(activeSection);
+  } else if (activeSection === "ticker") {
     if (!site.ticker) site.ticker = { enabled: true, items: [], speed: 75 };
     html = `<div class="card"><h3>Content</h3>
       ${field("Show ticker", site.ticker.enabled !== false, "checkbox", "ticker-enabled")}
@@ -1771,7 +2025,8 @@ function renderEditor() {
   wireGotoAndLocalize();
 
   const structureId = activeSection === "navigation" ? "header" : activeSection;
-  const canStructure = REMOVABLE_SECTIONS.includes(structureId) || structureId === "ticker";
+  const canRemove = REMOVABLE_SECTIONS.includes(structureId) || isBlockId(structureId);
+  const canStructure = canRemove || structureId === "ticker";
   if (canStructure && !THEME_SECTIONS.includes(activeSection) && activeSection !== "none") {
     const structure = document.createElement("div");
     structure.className = "card card--danger-zone";
@@ -1780,7 +2035,7 @@ function renderEditor() {
       <p class="card-desc">Hide keeps it in the tree. Remove takes it off the page (you can add it again later).</p>
       <div class="structure-actions">
         <button type="button" class="btn btn-secondary" id="structure-hide">${visible ? "Hide section" : "Show section"}</button>
-        ${REMOVABLE_SECTIONS.includes(structureId) ? `<button type="button" class="btn btn-danger" id="structure-remove">Remove section</button>` : ""}
+        ${canRemove ? `<button type="button" class="btn btn-danger" id="structure-remove">Remove section</button>` : ""}
       </div>`;
     ed().appendChild(structure);
     $("#structure-hide")?.addEventListener("click", () => {
@@ -1948,7 +2203,9 @@ function setCanvasDevice(device, widthPx) {
 
 function applySectionOrderFromCanvas(order) {
   if (!Array.isArray(order) || !order.length) return;
-  const cleaned = order.filter((id) => DEFAULT_SECTION_ORDER.includes(id) && id !== "contact");
+  const cleaned = order.filter(
+    (id) => id !== "contact" && (DEFAULT_SECTION_ORDER.includes(id) || isBlockId(id))
+  );
   // Preserve sections that were on the page but not in the canvas order payload
   const extras = site.sectionOrder.filter((id) => id !== "contact" && !cleaned.includes(id));
   const next = [...cleaned, ...extras];
@@ -2192,6 +2449,9 @@ $("#add-section-btn")?.addEventListener("click", openSectionCatalog);
 $("#section-catalog-close")?.addEventListener("click", closeSectionCatalog);
 $("#section-catalog-modal")?.addEventListener("click", (e) => {
   if (e.target?.id === "section-catalog-modal") closeSectionCatalog();
+});
+$("#section-catalog-search")?.addEventListener("input", (e) => {
+  renderCatalogList(e.target.value || "");
 });
 
 window.addEventListener("beforeunload", (e) => {

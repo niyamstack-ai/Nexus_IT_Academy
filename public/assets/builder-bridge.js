@@ -15,7 +15,7 @@
     contact: "Contact / Footer"
   };
 
-  const REORDERABLE = new Set([
+  const BUILTIN_REORDERABLE = new Set([
     "hero", "partners", "alumni", "journey", "guarantee", "course", "jobs", "fees", "eligibility", "batch"
   ]);
   const LOCKED = new Set(["ticker", "header", "contact"]);
@@ -23,6 +23,10 @@
   let selected = null;
   let dragId = null;
   let toolbar = null;
+
+  function isReorderable(id) {
+    return BUILTIN_REORDERABLE.has(id) || (typeof id === "string" && id.startsWith("blk_"));
+  }
 
   function nearestSection(el) {
     return el && el.closest ? el.closest("[data-nexus-section]") : null;
@@ -35,7 +39,7 @@
   function currentOrder() {
     return [...document.querySelectorAll("[data-nexus-section]")]
       .map((n) => n.getAttribute("data-nexus-section"))
-      .filter((id) => REORDERABLE.has(id));
+      .filter((id) => isReorderable(id));
   }
 
   function ensureToolbar() {
@@ -77,8 +81,8 @@
     bar.classList.add("is-visible");
 
     const locked = LOCKED.has(selected);
-    bar.querySelector('[data-tb="up"]').disabled = locked || !REORDERABLE.has(selected);
-    bar.querySelector('[data-tb="down"]').disabled = locked || !REORDERABLE.has(selected);
+    bar.querySelector('[data-tb="up"]').disabled = locked || !isReorderable(selected);
+    bar.querySelector('[data-tb="down"]').disabled = locked || !isReorderable(selected);
     bar.querySelector('[data-tb="remove"]').disabled = locked;
     bar.querySelector('[data-tb="hide"]').textContent =
       node.getAttribute("data-nexus-hidden") === "true" ? "Show" : "Hide";
@@ -109,7 +113,7 @@
       if (!node.querySelector(".nexus-section-label")) {
         const chip = document.createElement("span");
         chip.className = "nexus-section-label";
-        chip.textContent = LABEL[id] || id;
+        chip.textContent = LABEL[id] || node.getAttribute("data-nexus-label") || id;
         node.appendChild(chip);
       }
       if (node.getAttribute("data-nexus-hidden") === "true" && !node.querySelector(".nexus-hidden-badge")) {
@@ -118,7 +122,7 @@
         badge.textContent = "Hidden";
         node.appendChild(badge);
       }
-      if (REORDERABLE.has(id) && !node.querySelector(".nexus-drag-handle")) {
+      if (isReorderable(id) && !node.querySelector(".nexus-drag-handle")) {
         const handle = document.createElement("button");
         handle.type = "button";
         handle.className = "nexus-drag-handle";
@@ -140,7 +144,7 @@
         node.appendChild(handle);
       }
 
-      if (REORDERABLE.has(id)) {
+      if (isReorderable(id)) {
         node.addEventListener("dragover", (e) => {
           if (!dragId || dragId === id) return;
           e.preventDefault();
@@ -152,7 +156,7 @@
           node.classList.remove("nexus-drag-over");
           const fromId = e.dataTransfer.getData("text/plain") || dragId;
           const toId = id;
-          if (!fromId || fromId === toId || !REORDERABLE.has(fromId)) return;
+          if (!fromId || fromId === toId || !isReorderable(fromId)) return;
           const order = currentOrder();
           const from = order.indexOf(fromId);
           const to = order.indexOf(toId);
