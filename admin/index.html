@@ -16,7 +16,7 @@
       <div class="login-brand">
         <div class="login-logo">N</div>
         <h1>Nexus Admin</h1>
-        <p>Website Builder & Content Manager</p>
+        <p>Visual Website Builder</p>
       </div>
       <label>
         <span>Admin ID</span>
@@ -32,16 +32,16 @@
   </div>
 
   <div id="sidebar-backdrop" class="sidebar-backdrop hidden"></div>
-  <div id="app" class="app hidden">
-    <aside class="sidebar" id="sidebar">
+  <div id="app" class="app builder-app hidden">
+    <aside class="sidebar sidebar-slim" id="sidebar">
       <div class="sidebar-brand">
         <strong>Nexus</strong>
-        <span>Website Builder</span>
+        <span>Builder</span>
       </div>
       <nav class="sidebar-nav" id="sidebar-nav"></nav>
       <div class="sidebar-footer">
-        <button type="button" id="export-btn" class="btn btn-ghost btn-block">Export Backup</button>
-        <a href="/" target="_blank" class="btn btn-ghost btn-block">View Live Site ↗</a>
+        <button type="button" id="export-btn" class="btn btn-ghost btn-block">Export</button>
+        <a href="/" target="_blank" class="btn btn-ghost btn-block">Live ↗</a>
         <button type="button" id="logout-btn" class="btn btn-ghost btn-block">Logout</button>
       </div>
     </aside>
@@ -50,26 +50,31 @@
       <header class="topbar">
         <button type="button" id="menu-toggle" class="btn btn-secondary menu-toggle" aria-label="Open menu">Menu</button>
         <div class="topbar-title-wrap">
-          <h2 id="panel-title">Quick Updates</h2>
-          <p id="panel-desc" class="topbar-desc">Your weekly edits in one place</p>
+          <h2 id="panel-title">Website Builder</h2>
+          <p id="panel-desc" class="topbar-desc">Click any section on the page to edit</p>
           <span id="unsaved-badge" class="unsaved-badge hidden">Unsaved changes</span>
         </div>
+        <div class="device-toggles" id="device-toggles" role="group" aria-label="Preview size">
+          <button type="button" class="btn btn-ghost btn-sm device-btn active" data-device="desktop">Desktop</button>
+          <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="tablet">Tablet</button>
+          <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="mobile">Mobile</button>
+        </div>
         <div class="topbar-actions">
-          <button type="button" id="preview-toggle" class="btn btn-secondary">Show Preview</button>
-          <button type="button" id="reset-btn" class="btn btn-secondary">Restore Template…</button>
+          <button type="button" id="refresh-preview" class="btn btn-secondary">Refresh</button>
+          <button type="button" id="reset-btn" class="btn btn-secondary">Restore…</button>
           <button type="button" id="save-btn" class="btn btn-primary">Save & Publish</button>
         </div>
       </header>
 
-      <div class="workspace-body preview-hidden" id="workspace-body">
-        <main id="editor-panel" class="editor-panel"></main>
-        <aside id="preview-panel" class="preview-panel">
-          <div class="preview-header">
-            <span>Live Preview <small class="preview-hint">(updates as you type)</small></span>
-            <button type="button" id="refresh-preview" class="btn btn-ghost btn-sm">Refresh</button>
-          </div>
-          <iframe id="preview-frame" src="/preview" title="Site preview"></iframe>
+      <div class="workspace-body builder-workspace" id="workspace-body">
+        <aside class="inspector-panel">
+          <main id="editor-panel" class="editor-panel"></main>
         </aside>
+        <section class="canvas-panel" id="preview-panel">
+          <div class="canvas-frame-wrap" id="canvas-frame-wrap" data-device="desktop">
+            <iframe id="preview-frame" src="/preview" title="Site canvas"></iframe>
+          </div>
+        </section>
       </div>
     </div>
   </div>

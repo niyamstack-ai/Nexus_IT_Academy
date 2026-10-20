@@ -1,5 +1,49 @@
+const DEFAULT_SECTION_ORDER = [
+  "hero", "partners", "alumni", "journey", "guarantee", "course", "jobs", "fees", "eligibility", "batch", "contact"
+];
+
+const SECTION_LABELS = {
+  canvas: "Page canvas",
+  quick: "Quick Updates",
+  ticker: "Announcement Bar",
+  header: "Header / Nav",
+  navigation: "Register & Login",
+  hero: "Hero",
+  partners: "Hiring Partners",
+  alumni: "Alumni Spotlight",
+  journey: "Journey Steps",
+  guarantee: "Placement Guarantee",
+  course: "Course / Syllabus",
+  jobs: "Job Profiles",
+  fees: "Fee Structure",
+  eligibility: "Eligibility",
+  batch: "Next Batch",
+  contact: "Contact & Footer",
+  themes: "Themes & Design",
+  domain: "Domain & Go Live",
+  settings: "Site Settings"
+};
+
+/** Canvas click ids → admin editor section ids */
+const CANVAS_TO_EDITOR = {
+  ticker: "ticker",
+  header: "navigation",
+  hero: "hero",
+  partners: "partners",
+  alumni: "alumni",
+  journey: "journey",
+  guarantee: "guarantee",
+  course: "course",
+  jobs: "jobs",
+  fees: "fees",
+  eligibility: "eligibility",
+  batch: "batch",
+  contact: "contact"
+};
+
 const DAILY_SECTIONS = [
-  { id: "quick", icon: "⚡", title: "Quick Updates", desc: "Weekly edits in one place — batch, fees, ticker, alumni, hero" },
+  { id: "canvas", icon: "🖼", title: "Page canvas", desc: "Click the website to edit any section" },
+  { id: "quick", icon: "⚡", title: "Quick Updates", desc: "Jump to weekly edits" },
   { id: "ticker", icon: "📢", title: "Announcement Bar", desc: "Scrolling highlights" },
   { id: "batch", icon: "📅", title: "Next Batch", desc: "Date, time & Join Community" },
   { id: "fees", icon: "💰", title: "Fee Structure", desc: "Pay-after-placement pricing" },
@@ -25,11 +69,13 @@ const SECTIONS = [...DAILY_SECTIONS, ...ADVANCED_SECTIONS];
 
 let site = null;
 let themes = { presets: [], fonts: [] };
-let activeSection = "quick";
+let activeSection = "canvas";
+let selectedCanvasSection = null;
 let isDirty = false;
 let advancedOpen = false;
-let previewVisible = false;
+let previewVisible = true;
 let previewTimer = null;
+let canvasDevice = "desktop";
 /** Keep current site fonts when applying a color theme */
 let lockFontsOnThemeChange = true;
 
@@ -71,6 +117,28 @@ function clearDirty() {
   $("#save-btn")?.classList.remove("btn-pulse");
 }
 
+function ensureSectionOrder() {
+  if (!Array.isArray(site.sectionOrder) || !site.sectionOrder.length) {
+    site.sectionOrder = DEFAULT_SECTION_ORDER.slice();
+  }
+  for (const id of DEFAULT_SECTION_ORDER) {
+    if (!site.sectionOrder.includes(id)) site.sectionOrder.push(id);
+  }
+  site.sectionOrder = site.sectionOrder.filter((id) => DEFAULT_SECTION_ORDER.includes(id));
+}
+
+function editorToCanvasId(editorId) {
+  if (editorId === "navigation") return "header";
+  if (DEFAULT_SECTION_ORDER.includes(editorId) || editorId === "ticker") return editorId;
+  return null;
+}
+
+function highlightSectionInPreview(sectionId) {
+  const canvasId = sectionId || selectedCanvasSection || editorToCanvasId(activeSection);
+  if (!previewFrame?.contentWindow) return;
+  previewFrame.contentWindow.postMessage({ type: "nexus-highlight", section: canvasId }, "*");
+}
+
 function scheduleLivePreview() {
   if (!previewVisible) return;
   clearTimeout(previewTimer);
@@ -83,6 +151,16 @@ async function syncLivePreview() {
   if (!site) return;
   await api("/api/admin/preview-draft", { method: "PUT", body: JSON.stringify(site) });
   refreshPreview();
+}
+
+function selectFromCanvas(canvasId) {
+  const editorId = CANVAS_TO_EDITOR[canvasId] || canvasId;
+  selectedCanvasSection = canvasId;
+  activeSection = editorId;
+  if (ADVANCED_SECTIONS.some((s) => s.id === editorId)) advancedOpen = true;
+  renderNav();
+  renderEditor();
+  highlightSectionInPreview(canvasId);
 }
 
 async function refreshDomainGuide() {
@@ -201,9 +279,14 @@ function renderNav() {
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.addEventListener("click", () => {
       activeSection = btn.dataset.section;
+      selectedCanvasSection = editorToCanvasId(activeSection);
       if (ADVANCED_SECTIONS.some((s) => s.id === activeSection)) advancedOpen = true;
       renderNav();
       renderEditor();
+      highlightSectionInPreview(selectedCanvasSection);
+      if (selectedCanvasSection && previewFrame?.contentWindow) {
+        previewFrame.contentWindow.postMessage({ type: "nexus-scroll", section: selectedCanvasSection }, "*");
+      }
       closeMobileMenu();
     });
   });
@@ -418,125 +501,120 @@ function ensureSiteShapes() {
   if (!site.course.modules) site.course.modules = [];
 }
 
+function renderLayersList(container) {
+  ensureSectionOrder();
+  const list = document.createElement("div");
+  list.className = "layers-list";
+
+  site.sectionOrder.forEach((id, index) => {
+    const row = document.createElement("div");
+    row.className = `layer-item${selectedCanvasSection === id || activeSection === id ? " active" : ""}`;
+    row.draggable = true;
+    row.dataset.index = String(index);
+    row.innerHTML = `<span class="layer-handle">⋮⋮</span><span>${SECTION_LABELS[id] || id}</span>`;
+    const openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.textContent = "Edit";
+    openBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selectFromCanvas(id);
+    });
+    row.appendChild(openBtn);
+
+    row.addEventListener("click", () => selectFromCanvas(id));
+    row.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", String(index));
+      row.classList.add("dragging");
+    });
+    row.addEventListener("dragend", () => row.classList.remove("dragging"));
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      const from = parseInt(e.dataTransfer.getData("text/plain"), 10);
+      const to = index;
+      if (Number.isNaN(from) || from === to) return;
+      const [moved] = site.sectionOrder.splice(from, 1);
+      site.sectionOrder.splice(to, 0, moved);
+      markDirty();
+      renderEditor();
+    });
+    list.appendChild(row);
+  });
+
+  container.appendChild(list);
+}
+
+function renderCanvasHome() {
+  ensureSiteShapes();
+  ensureSectionOrder();
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <div class="card builder-hint">
+      <strong>Click any section on the website</strong> (right) to edit it here.
+      Hover shows pink outlines. Drag layers below to reorder page sections.
+    </div>
+    <div class="card">
+      <h3>Page structure</h3>
+      <p class="card-desc">Drag ⋮⋮ to change order on the live page. Ticker and header stay on top.</p>
+      <div id="layers-root"></div>
+    </div>
+    <div class="card">
+      <h3>This week</h3>
+      <div class="quick-jump">
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="batch">Next Batch</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="fees">Fees</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="ticker">Ticker</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="alumni">Alumni</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="hero">Hero</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="course">Syllabus</button>
+      </div>
+    </div>`;
+  editor.appendChild(wrap);
+  renderLayersList($("#layers-root"));
+}
+
 function renderQuickUpdates() {
   ensureSiteShapes();
   const wrap = document.createElement("div");
   wrap.className = "quick-updates";
-
   wrap.innerHTML = `
     <div class="card quick-hero-card">
       <h3>This week’s checklist</h3>
-      <p class="card-desc">Edit these, then click <strong>Save &amp; Publish</strong>. Preview stays hidden so you have more room — use “Show Preview” when you want a check.</p>
+      <p class="card-desc">Jump to a section, or click it on the canvas.</p>
       <div class="quick-jump">
-        <a href="#quick-batch" class="btn btn-ghost btn-sm">Batch</a>
-        <a href="#quick-fees" class="btn btn-ghost btn-sm">Fees</a>
-        <a href="#quick-ticker" class="btn btn-ghost btn-sm">Ticker</a>
-        <a href="#quick-alumni" class="btn btn-ghost btn-sm">Alumni</a>
-        <a href="#quick-hero" class="btn btn-ghost btn-sm">Hero</a>
-        <a href="#quick-syllabus" class="btn btn-ghost btn-sm">Syllabus</a>
-      </div>
-    </div>
-
-    <div class="card" id="quick-batch">
-      <h3>📅 Next Batch & Join Community</h3>
-      ${field("Date / time", site.nextBatch.dateTitle || "", "text", "q-batch-date")}
-      ${field("Card text", site.nextBatch.cardText || "", "text", "q-batch-text")}
-      ${field("Button label", site.nextBatch.ctaLabel || "JOIN COMMUNITY", "text", "q-batch-cta-label")}
-      ${field("WhatsApp / Community URL", site.nextBatch.ctaUrl || "", "url", "q-batch-cta-url")}
-      ${field("Show floating JOIN COMMUNITY button", site.community.floating === true, "checkbox", "q-community-float")}
-    </div>
-
-    <div class="card" id="quick-fees">
-      <h3>💰 Fee Structure</h3>
-      ${field("Section title", site.feeStructure.title || "", "text", "q-fee-title")}
-      ${field("Subtitle", site.feeStructure.subtitle || "", "text", "q-fee-subtitle")}
-      ${field("Total fees label", site.feeStructure.totalLabel || "", "text", "q-fee-total")}
-      <div id="q-fee-steps"></div>
-    </div>
-
-    <div class="card" id="quick-ticker">
-      <h3>📢 Announcement Bar</h3>
-      ${field("Ticker items (one per line)", arrayToLines(site.ticker.items), "textarea", "q-ticker-items")}
-      <p class="card-desc">Example: 🧑‍🎓 100+ Genuine Placement</p>
-    </div>
-
-    <div class="card" id="quick-alumni">
-      <h3>🎓 Alumni Spotlight</h3>
-      <p class="card-desc">Drag ⋮⋮ to reorder. Add or remove stories anytime. Aim for 4 cards on the live site.</p>
-      <div id="q-alumni-list"></div>
-    </div>
-
-    <div class="card" id="quick-hero">
-      <h3>🎯 Hero</h3>
-      ${field("Headline", site.hero.headline || "", "text", "q-hero-headline")}
-      ${field("Feature bullets (one per line)", arrayToLines(site.hero.features), "textarea", "q-hero-features")}
-    </div>
-
-    <div class="card" id="quick-syllabus">
-      <h3>📘 Syllabus modules</h3>
-      <p class="card-desc">Each module: title + bullets (one per line). Drag to reorder.</p>
-      <div id="q-syllabus-list"></div>
-    </div>
-
-    <div class="card">
-      <h3>More</h3>
-      <div class="field-grid-2">
-        <button type="button" class="btn btn-secondary" data-goto="navigation">Register / Login links</button>
-        <button type="button" class="btn btn-secondary" data-goto="partners">Hiring partners</button>
-        <button type="button" class="btn btn-secondary" data-goto="contact">Contact & footer</button>
-        <button type="button" class="btn btn-secondary" data-goto="themes">Themes & fonts</button>
-        <button type="button" class="btn btn-primary" id="localize-images-btn">Save all images to our server</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="batch">Batch</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="fees">Fees</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="ticker">Ticker</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="alumni">Alumni</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="hero">Hero</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-goto="course">Syllabus</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-goto="canvas">Page structure</button>
       </div>
     </div>`;
-
   editor.appendChild(wrap);
-
-  bindField("q-batch-date", (v) => { site.nextBatch.dateTitle = v; });
-  bindField("q-batch-text", (v) => { site.nextBatch.cardText = v; });
-  bindField("q-batch-cta-label", (v) => { site.nextBatch.ctaLabel = v; site.community.label = v; });
-  bindField("q-batch-cta-url", (v) => { site.nextBatch.ctaUrl = v; site.community.url = v; });
-  bindField("q-community-float", (v) => {
-    site.community.enabled = v;
-    site.community.floating = v;
-  });
-  bindField("q-fee-title", (v) => { site.feeStructure.title = v; });
-  bindField("q-fee-subtitle", (v) => { site.feeStructure.subtitle = v; });
-  bindField("q-fee-total", (v) => { site.feeStructure.totalLabel = v; });
-  bindField("q-ticker-items", (v) => { site.ticker.items = linesToArray(v); });
-  bindField("q-hero-headline", (v) => { site.hero.headline = v; });
-  bindField("q-hero-features", (v) => { site.hero.features = linesToArray(v); });
-
-  $("#q-fee-steps")?.appendChild(listField("Fee step", site.feeStructure.steps, [
-    { key: "label", label: "Step label" },
-    { key: "title", label: "Amount / title" },
-    { key: "description", label: "Description", type: "textarea" }
-  ], () => {}));
-
-  $("#q-alumni-list")?.appendChild(listField("Story", site.alumni.items, [
-    { key: "image", label: "Photo", type: "image", preset: "alumni" },
-    { key: "alt", label: "Caption / student name" }
-  ], () => {}, { addLabel: "+ Add alumni story", hint: "Tip: 4 stories looks best on desktop." }));
-
-  site.course.modules.forEach((m) => {
-    if (!m.itemsText) m.itemsText = arrayToLines(m.items || []);
-  });
-  $("#q-syllabus-list")?.appendChild(listField("Module", site.course.modules, [
-    { key: "title", label: "Module title" },
-    { key: "itemsText", label: "Bullets (one per line)", type: "textarea" }
-  ], () => {
-    site.course.modules.forEach((m) => {
-      if (typeof m.itemsText === "string") m.items = linesToArray(m.itemsText);
-    });
-  }, { addLabel: "+ Add syllabus module" }));
 }
 
 function renderEditor() {
-  const section = SECTIONS.find((s) => s.id === activeSection);
+  const section = SECTIONS.find((s) => s.id === activeSection) || {
+    title: SECTION_LABELS[activeSection] || activeSection,
+    desc: "Edit this section"
+  };
   $("#panel-title").textContent = section.title;
-  $("#panel-desc").textContent = section.desc;
+  $("#panel-desc").textContent = section.desc || "Edit selected section";
 
   editor.innerHTML = "";
   let html = "";
+
+  if (activeSection === "canvas") {
+    renderCanvasHome();
+    wireGotoAndLocalize();
+    return;
+  }
 
   if (activeSection === "quick") {
     renderQuickUpdates();
@@ -912,9 +990,11 @@ function wireGotoAndLocalize() {
   document.querySelectorAll("[data-goto]").forEach((btn) => {
     btn.addEventListener("click", () => {
       activeSection = btn.dataset.goto;
+      selectedCanvasSection = editorToCanvasId(activeSection);
       if (ADVANCED_SECTIONS.some((s) => s.id === activeSection)) advancedOpen = true;
       renderNav();
       renderEditor();
+      highlightSectionInPreview(selectedCanvasSection);
       closeMobileMenu();
     });
   });
@@ -947,6 +1027,11 @@ async function saveSite() {
 
 function refreshPreview() {
   if (!previewFrame) return;
+  const onLoad = () => {
+    previewFrame.removeEventListener("load", onLoad);
+    highlightSectionInPreview();
+  };
+  previewFrame.addEventListener("load", onLoad);
   previewFrame.src = "/preview?t=" + Date.now();
 }
 
@@ -976,31 +1061,35 @@ async function saferReset() {
   const res = await api("/api/admin/reset", { method: "POST" });
   site = res.site;
   clearDirty();
-  activeSection = "quick";
+  activeSection = "canvas";
+  selectedCanvasSection = null;
   renderNav();
   renderEditor();
   refreshPreview();
   showToast("Restored template defaults");
 }
 
-function syncPreviewToggleLabel() {
-  const btn = $("#preview-toggle");
-  if (!btn) return;
-  btn.textContent = previewVisible ? "Hide Preview" : "Show Preview";
+function setCanvasDevice(device) {
+  canvasDevice = device;
+  $("#canvas-frame-wrap")?.setAttribute("data-device", device);
+  document.querySelectorAll(".device-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.device === device);
+  });
 }
 
 async function initApp() {
   site = await api("/api/admin/site");
   themes = await api("/api/admin/themes");
   ensureSiteShapes();
+  ensureSectionOrder();
   $("#login-screen").classList.add("hidden");
   $("#app").classList.remove("hidden");
-  previewVisible = false;
-  $("#workspace-body")?.classList.add("preview-hidden");
-  syncPreviewToggleLabel();
+  previewVisible = true;
   clearDirty();
+  setCanvasDevice(canvasDevice);
   renderNav();
   renderEditor();
+  syncLivePreview().catch(() => refreshPreview());
 }
 
 async function checkAuth() {
@@ -1036,20 +1125,26 @@ $("#save-btn").addEventListener("click", () => saveSite().catch((e) => showToast
 $("#reset-btn").addEventListener("click", () => saferReset().catch((e) => showToast(e.message, "error")));
 $("#export-btn")?.addEventListener("click", exportBackup);
 
-$("#refresh-preview").addEventListener("click", () => {
+$("#refresh-preview")?.addEventListener("click", () => {
   syncLivePreview().catch((e) => showToast(e.message, "error"));
 });
-$("#preview-toggle").addEventListener("click", () => {
-  previewVisible = !previewVisible;
-  $("#workspace-body")?.classList.toggle("preview-hidden", !previewVisible);
-  syncPreviewToggleLabel();
-  if (previewVisible) {
-    syncLivePreview().catch((e) => showToast(e.message, "error"));
-  }
+
+document.querySelectorAll(".device-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setCanvasDevice(btn.dataset.device));
 });
 
 $("#menu-toggle")?.addEventListener("click", openMobileMenu);
 $("#sidebar-backdrop")?.addEventListener("click", closeMobileMenu);
+
+window.addEventListener("message", (e) => {
+  const data = e.data || {};
+  if (data.type === "nexus-select" && data.section) {
+    selectFromCanvas(data.section);
+  }
+  if (data.type === "nexus-ready") {
+    highlightSectionInPreview();
+  }
+});
 
 window.addEventListener("beforeunload", (e) => {
   if (!isDirty) return;

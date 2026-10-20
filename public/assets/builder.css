@@ -1,0 +1,51 @@
+.nexus-section-wrap {
+  position: relative;
+}
+
+[data-nexus-section] {
+  position: relative;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  cursor: pointer;
+  transition: outline-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-nexus-section]:hover {
+  outline-color: rgba(188, 13, 93, 0.55);
+  z-index: 2;
+}
+
+[data-nexus-section].nexus-selected {
+  outline-color: #bc0d5d;
+  box-shadow: inset 0 0 0 2px rgba(188, 13, 93, 0.25);
+  z-index: 3;
+}
+
+.nexus-section-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 20;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #bc0d5d;
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+[data-nexus-section]:hover .nexus-section-label,
+[data-nexus-section].nexus-selected .nexus-section-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body.nexus-builder a {
+  pointer-events: none;
+}

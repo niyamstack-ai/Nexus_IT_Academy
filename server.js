@@ -64,7 +64,8 @@ app.get("/", (req, res) => {
 });
 
 app.get("/preview", (req, res) => {
-  res.type("html").send(renderSite(siteForPreview(req)));
+  const builder = !!req.session?.authenticated;
+  res.type("html").send(renderSite(siteForPreview(req), { builder }));
 });
 
 app.post("/api/admin/login", (req, res) => {

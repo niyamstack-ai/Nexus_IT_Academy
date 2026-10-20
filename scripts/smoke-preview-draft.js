@@ -107,6 +107,25 @@ async function main() {
     process.exit(1);
   }
   console.log("published site unchanged");
+
+  const builderPreview = await req("/preview");
+  if (!builderPreview.text.includes("data-nexus-section")) {
+    console.error("BUILDER_MARKERS_MISSING");
+    process.exit(1);
+  }
+  if (!builderPreview.text.includes("builder-bridge.js")) {
+    console.error("BUILDER_BRIDGE_MISSING");
+    process.exit(1);
+  }
+  console.log("builder markers ok");
+
+  const publicPage = await fetch(`${base}/`);
+  const publicHtml = await publicPage.text();
+  if (publicHtml.includes("data-nexus-section") || publicHtml.includes("builder-bridge.js")) {
+    console.error("PUBLIC_HAS_BUILDER_UI");
+    process.exit(1);
+  }
+  console.log("public has no builder UI");
   console.log("SMOKE_OK");
 }
 

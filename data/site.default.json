@@ -1,5 +1,18 @@
 {
   "siteName": "Nexus IT Academy",
+  "sectionOrder": [
+    "hero",
+    "partners",
+    "alumni",
+    "journey",
+    "guarantee",
+    "course",
+    "jobs",
+    "fees",
+    "eligibility",
+    "batch",
+    "contact"
+  ],
   "meta": {
     "title": "Nexus IT - Genuine Pay after Placement IT Academy",
     "description": "A Genuine Pay After Placement IT Academy & Placement Firm - Nexus IT Academy"
