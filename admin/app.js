@@ -29,6 +29,7 @@ let activeSection = "quick";
 let isDirty = false;
 let advancedOpen = false;
 let previewVisible = false;
+let previewTimer = null;
 /** Keep current site fonts when applying a color theme */
 let lockFontsOnThemeChange = true;
 
@@ -56,10 +57,12 @@ function showToast(msg, type = "success") {
 }
 
 function markDirty() {
-  if (isDirty) return;
-  isDirty = true;
-  $("#unsaved-badge")?.classList.remove("hidden");
-  $("#save-btn")?.classList.add("btn-pulse");
+  if (!isDirty) {
+    isDirty = true;
+    $("#unsaved-badge")?.classList.remove("hidden");
+    $("#save-btn")?.classList.add("btn-pulse");
+  }
+  scheduleLivePreview();
 }
 
 function clearDirty() {
@@ -68,12 +71,26 @@ function clearDirty() {
   $("#save-btn")?.classList.remove("btn-pulse");
 }
 
+function scheduleLivePreview() {
+  if (!previewVisible) return;
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    syncLivePreview().catch(() => {});
+  }, 700);
+}
+
+async function syncLivePreview() {
+  if (!site) return;
+  await api("/api/admin/preview-draft", { method: "PUT", body: JSON.stringify(site) });
+  refreshPreview();
+}
+
 async function refreshDomainGuide() {
   const guide = $("#domain-guide");
   if (!guide) return;
 
   try {
-    await saveSiteQuiet();
+    await api("/api/admin/preview-draft", { method: "PUT", body: JSON.stringify(site) });
     const data = await api("/api/admin/domain/setup");
     const { dns, steps, nginxConfig, liveUrl, stagingUrl, adminUrl } = data;
     const subdomain = site.domain?.liveSubdomain || "nexusitacad.niyamstack.com";
@@ -152,10 +169,6 @@ async function refreshDomainGuide() {
   } catch (e) {
     guide.innerHTML = `<div class="card"><p class="form-error">${e.message}</p></div>`;
   }
-}
-
-async function saveSiteQuiet() {
-  await api("/api/admin/site", { method: "PUT", body: JSON.stringify(site) });
 }
 
 function linesToArray(text) {
@@ -933,6 +946,7 @@ async function saveSite() {
 }
 
 function refreshPreview() {
+  if (!previewFrame) return;
   previewFrame.src = "/preview?t=" + Date.now();
 }
 
@@ -1022,12 +1036,16 @@ $("#save-btn").addEventListener("click", () => saveSite().catch((e) => showToast
 $("#reset-btn").addEventListener("click", () => saferReset().catch((e) => showToast(e.message, "error")));
 $("#export-btn")?.addEventListener("click", exportBackup);
 
-$("#refresh-preview").addEventListener("click", refreshPreview);
+$("#refresh-preview").addEventListener("click", () => {
+  syncLivePreview().catch((e) => showToast(e.message, "error"));
+});
 $("#preview-toggle").addEventListener("click", () => {
   previewVisible = !previewVisible;
   $("#workspace-body")?.classList.toggle("preview-hidden", !previewVisible);
   syncPreviewToggleLabel();
-  if (previewVisible) refreshPreview();
+  if (previewVisible) {
+    syncLivePreview().catch((e) => showToast(e.message, "error"));
+  }
 });
 
 $("#menu-toggle")?.addEventListener("click", openMobileMenu);

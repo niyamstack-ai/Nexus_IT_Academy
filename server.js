@@ -52,12 +52,19 @@ function requireAuth(req, res, next) {
 
 app.get("/admin", (req, res) => res.redirect("/admin/"));
 
+function siteForPreview(req) {
+  if (req.session?.authenticated && req.session.previewDraft) {
+    return req.session.previewDraft;
+  }
+  return getSite();
+}
+
 app.get("/", (req, res) => {
   res.type("html").send(renderSite(getSite()));
 });
 
 app.get("/preview", (req, res) => {
-  res.type("html").send(renderSite(getSite()));
+  res.type("html").send(renderSite(siteForPreview(req)));
 });
 
 app.post("/api/admin/login", (req, res) => {
@@ -85,11 +92,18 @@ app.get("/api/admin/site", requireAuth, (req, res) => {
 app.put("/api/admin/site", requireAuth, (req, res) => {
   const data = { ...req.body, updatedAt: new Date().toISOString() };
   saveSite(data);
+  req.session.previewDraft = null;
   res.json({ ok: true, site: data });
+});
+
+app.put("/api/admin/preview-draft", requireAuth, (req, res) => {
+  req.session.previewDraft = req.body || null;
+  res.json({ ok: true });
 });
 
 app.post("/api/admin/reset", requireAuth, (req, res) => {
   const site = resetSite();
+  req.session.previewDraft = null;
   res.json({ ok: true, site });
 });
 
@@ -98,7 +112,7 @@ app.get("/api/admin/themes", requireAuth, (req, res) => {
 });
 
 app.get("/api/admin/domain/setup", requireAuth, (req, res) => {
-  const site = getSite();
+  const site = siteForPreview(req);
   const dns = buildDnsRecords(site.domain);
   res.json({
     dns,

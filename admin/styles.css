@@ -235,6 +235,12 @@ body {
   color: var(--muted);
 }
 
+.preview-hint {
+  font-weight: 400;
+  opacity: 0.75;
+  margin-left: 4px;
+}
+
 #preview-frame {
   flex: 1;
   width: 100%;
@@ -582,6 +588,13 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.image-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .image-url-input {

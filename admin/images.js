@@ -82,47 +82,79 @@ async function uploadCroppedImage() {
   cropCallback = null;
 }
 
+function setImagePreview(box, url) {
+  if (url) {
+    box.innerHTML = `<img src="${url}" alt="Preview">`;
+  } else {
+    box.innerHTML = `<span class="image-placeholder">No image</span>`;
+  }
+}
+
 function createImageField(label, value, presetId, onChange) {
   const wrap = document.createElement("div");
   wrap.className = "image-upload-field";
 
   const preview = document.createElement("div");
   preview.className = "image-preview-box";
-  if (value) {
-    preview.innerHTML = `<img src="${value}" alt="Preview">`;
-  } else {
-    preview.innerHTML = `<span class="image-placeholder">No image</span>`;
-  }
+  setImagePreview(preview, value);
 
   const actions = document.createElement("div");
   actions.className = "image-upload-actions";
 
+  const btnRow = document.createElement("div");
+  btnRow.className = "image-btn-row";
+
   const uploadBtn = document.createElement("button");
   uploadBtn.type = "button";
   uploadBtn.className = "btn btn-secondary btn-sm";
-  uploadBtn.textContent = "Upload & Crop";
-  uploadBtn.onclick = () => {
-    openCropModal(presetId, value, (url) => {
-      onChange(url);
-      preview.innerHTML = `<img src="${url}" alt="Preview">`;
-    });
-  };
+
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "btn btn-ghost btn-sm";
+  clearBtn.textContent = "Clear";
 
   const urlInput = document.createElement("input");
   urlInput.type = "text";
   urlInput.className = "image-url-input";
   urlInput.placeholder = "Or paste image URL";
   urlInput.value = value || "";
+
+  function syncUi(url) {
+    urlInput.value = url || "";
+    setImagePreview(preview, url);
+    uploadBtn.textContent = url ? "Replace photo" : "Upload & Crop";
+    clearBtn.disabled = !url;
+    clearBtn.classList.toggle("hidden", !url);
+  }
+
+  syncUi(value);
+
+  uploadBtn.onclick = () => {
+    openCropModal(presetId, urlInput.value, (url) => {
+      onChange(url);
+      syncUi(url);
+      if (window.markDirty) window.markDirty();
+    });
+  };
+
+  clearBtn.onclick = () => {
+    if (!confirm("Remove this image?")) return;
+    onChange("");
+    syncUi("");
+    if (window.markDirty) window.markDirty();
+  };
+
   urlInput.addEventListener("input", () => {
     onChange(urlInput.value);
-    if (urlInput.value) {
-      preview.innerHTML = `<img src="${urlInput.value}" alt="Preview">`;
-    } else {
-      preview.innerHTML = `<span class="image-placeholder">No image</span>`;
-    }
+    setImagePreview(preview, urlInput.value);
+    uploadBtn.textContent = urlInput.value ? "Replace photo" : "Upload & Crop";
+    clearBtn.disabled = !urlInput.value;
+    clearBtn.classList.toggle("hidden", !urlInput.value);
+    if (window.markDirty) window.markDirty();
   });
 
-  actions.append(uploadBtn, urlInput);
+  btnRow.append(uploadBtn, clearBtn);
+  actions.append(btnRow, urlInput);
   wrap.innerHTML = `<span class="field-label">${label}</span>`;
   wrap.append(preview, actions);
   return wrap;
