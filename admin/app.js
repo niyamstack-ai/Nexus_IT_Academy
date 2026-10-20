@@ -951,7 +951,7 @@ function field(label, value, type = "text", id = null) {
     return `<label><span>${label}</span><textarea id="${fieldId}">${escapeHtml(value || "")}</textarea></label>`;
   }
   if (type === "color") {
-    return `<label><span>${label}</span><input type="color" id="${fieldId}" value="${value || "#bc0d5d"}"></label>`;
+    return colorHexField(label, fieldId, value || "#bc0d5d");
   }
   if (type === "checkbox") {
     return `<label class="checkbox-row"><input type="checkbox" id="${fieldId}" ${value ? "checked" : ""}><span>${label}</span></label>`;
@@ -967,19 +967,180 @@ function selectField(label, id, value, options) {
 }
 
 function rangeField(label, id, value, min, max, step = 1, suffix = "") {
+  const unit = String(suffix || "").trim() || "px";
+  const numericSuffix = unit.replace(/^\s+/, "");
+  return unitRangeField(label, id, value, min, max, step, numericSuffix.replace(/^\s*/, "") || "px");
+}
+
+function unitRangeField(label, id, value, min, max, step = 1, unit = "px") {
   const v = value ?? min;
-  return `<label class="range-field"><span>${label} <em id="${id}-val">${v}${suffix}</em></span>
-    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"></label>`;
+  return `<label class="unit-range-field"><span>${label}</span>
+    <div class="unit-range-row">
+      <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}">
+      <div class="unit-range-num">
+        <input type="number" id="${id}-num" min="${min}" max="${max}" step="${step}" value="${v}">
+        <span class="unit-suffix">${escapeHtml(unit)}</span>
+      </div>
+    </div>
+  </label>`;
+}
+
+function colorHexField(label, id, value) {
+  let v = String(value || "#121212").trim();
+  if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) v = "#121212";
+  if (v.length === 4) v = `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+  return `<label class="color-hex-field"><span>${label}</span>
+    <div class="color-hex-row">
+      <input type="color" id="${id}" value="${escapeAttr(v)}" title="Pick color">
+      <input type="text" id="${id}-hex" class="color-hex-input" value="${escapeAttr(v)}" maxlength="7" spellcheck="false">
+    </div>
+  </label>`;
+}
+
+function getThemeFontChoices() {
+  const pairs = themes.fonts || [];
+  const choices = [];
+  pairs.forEach((p) => {
+    if (p.heading) choices.push({ family: p.heading, note: "Theme heading" });
+    if (p.body && p.body !== p.heading) choices.push({ family: p.body, note: "Theme body" });
+  });
+  const seen = new Set();
+  return choices.filter((c) => {
+    if (seen.has(c.family)) return false;
+    seen.add(c.family);
+    return true;
+  });
+}
+
+function getAllFontFamilies() {
+  const list = themes.allFonts || [];
+  return [...list].sort((a, b) => a.family.localeCompare(b.family));
+}
+
+function ensureAdminFontsLoaded() {
+  if (document.getElementById("nexus-admin-fonts")) return;
+  const families = getAllFontFamilies().slice(0, 80);
+  if (!families.length) return;
+  const href = families
+    .map((f) => `${encodeURIComponent(f.family).replace(/%20/g, "+")}:wght@400;700`)
+    .join("&family=");
+  const link = document.createElement("link");
+  link.id = "nexus-admin-fonts";
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${href}&display=swap`;
+  document.head.appendChild(link);
+}
+
+function fontPickerField(label, id, value) {
+  ensureAdminFontsLoaded();
+  const current = value || "";
+  const themeFonts = getThemeFontChoices();
+  const allFonts = getAllFontFamilies();
+  const themeOpts = themeFonts
+    .map((f) => `<option value="${escapeAttr(f.family)}" ${current === f.family ? "selected" : ""} style="font-family:'${escapeAttr(f.family)}', sans-serif">${escapeHtml(f.family)}</option>`)
+    .join("");
+  const allOpts = allFonts
+    .map((f) => `<option value="${escapeAttr(f.family)}" ${current === f.family ? "selected" : ""} style="font-family:'${escapeAttr(f.family)}', sans-serif">${escapeHtml(f.family)}</option>`)
+    .join("");
+  return `<label class="font-picker-field"><span>${label}</span>
+    <select id="${id}" class="font-picker-select">
+      <option value="">Theme default</option>
+      <optgroup label="Theme fonts">${themeOpts}</optgroup>
+      <optgroup label="All fonts">${allOpts}</optgroup>
+    </select>
+  </label>`;
+}
+
+function bulletStyleField(label, id, value) {
+  const styles = themes.bulletStyles || [
+    { id: "check-circle", label: "Check in circle" },
+    { id: "disc", label: "Filled disc" },
+    { id: "dash", label: "Dash" },
+    { id: "arrow", label: "Arrow" },
+    { id: "number", label: "Numbers" }
+  ];
+  const current = value || "check-circle";
+  const cards = styles.map((s) => {
+    const active = current === s.id ? " active" : "";
+    return `<button type="button" class="bullet-style-card${active}" data-bullet="${escapeAttr(s.id)}" title="${escapeAttr(s.label)}">
+      <span class="bullet-style-preview bullet-preview--${escapeAttr(s.id)}"></span>
+      <span>${escapeHtml(s.label)}</span>
+    </button>`;
+  }).join("");
+  return `<div class="bullet-style-field"><span class="field-label">${label}</span>
+    <input type="hidden" id="${id}" value="${escapeAttr(current)}">
+    <div class="bullet-style-grid">${cards}</div>
+  </div>`;
 }
 
 function bindRange(id, onChange, suffix = "") {
+  bindUnitRange(id, onChange, suffix);
+}
+
+function bindUnitRange(id, onChange) {
+  const range = document.getElementById(id);
+  const num = document.getElementById(`${id}-num`);
+  if (!range) return;
+  const sync = (raw) => {
+    const v = raw;
+    range.value = v;
+    if (num) num.value = v;
+    onChange(v);
+    markDirty();
+  };
+  range.addEventListener("input", () => sync(range.value));
+  num?.addEventListener("input", () => sync(num.value));
+}
+
+function bindColorHex(id, onChange) {
+  const color = document.getElementById(id);
+  const hex = document.getElementById(`${id}-hex`);
+  if (!color) return;
+  color.addEventListener("input", () => {
+    if (hex) hex.value = color.value;
+    onChange(color.value);
+    markDirty();
+  });
+  hex?.addEventListener("input", () => {
+    let v = hex.value.trim();
+    if (!v.startsWith("#")) v = `#${v}`;
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
+      if (v.length === 4) v = `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+      color.value = v;
+      hex.value = v;
+      onChange(v);
+      markDirty();
+    }
+  });
+}
+
+function bindFontPicker(id, onChange) {
   const el = document.getElementById(id);
-  const label = document.getElementById(`${id}-val`);
   if (!el) return;
-  el.addEventListener("input", () => {
-    if (label) label.textContent = `${el.value}${suffix}`;
+  const paint = () => {
+    const family = el.value || "inherit";
+    el.style.fontFamily = family === "inherit" || !family ? "inherit" : `'${family}', sans-serif`;
+  };
+  paint();
+  el.addEventListener("change", () => {
+    paint();
     onChange(el.value);
     markDirty();
+  });
+}
+
+function bindBulletStyle(id, onChange) {
+  const hidden = document.getElementById(id);
+  if (!hidden) return;
+  const root = hidden.closest(".bullet-style-field");
+  root?.querySelectorAll("[data-bullet]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      hidden.value = btn.dataset.bullet;
+      root.querySelectorAll(".bullet-style-card").forEach((c) => c.classList.remove("active"));
+      btn.classList.add("active");
+      onChange(btn.dataset.bullet);
+      markDirty();
+    });
   });
 }
 
@@ -997,6 +1158,10 @@ function escapeAttr(str) {
 function bindField(id, onChange) {
   const el = document.getElementById(id);
   if (!el) return;
+  if (el.type === "color" && document.getElementById(`${id}-hex`)) {
+    bindColorHex(id, onChange);
+    return;
+  }
   const evt = el.type === "checkbox" ? "change" : "input";
   el.addEventListener(evt, () => {
     onChange(el.type === "checkbox" ? el.checked : el.value);
@@ -1149,10 +1314,16 @@ function renderEditor() {
       ${field("Feature bullets (one per line)", arrayToLines(site.hero.features), "textarea", "hero-features")}
     </div>
     <div class="card"><h3>Headline style</h3>
-      ${field("Heading color", site.hero.headlineColor || "#ffffff", "color", "hero-color")}
-      ${rangeField("Heading size (desktop)", "hero-size-d", site.hero.headlineSizeDesktop || 48, 24, 72, 1, " px")}
-      ${rangeField("Heading size (mobile)", "hero-size-m", site.hero.headlineSizeMobile || 24, 16, 48, 1, " px")}
-      ${rangeField("Spacing after heading", "hero-spacing", site.hero.spacingAfterHeading ?? 28, 0, 80, 2, " px")}
+      ${fontPickerField("Heading font", "hero-font", site.hero.headingFont || "")}
+      ${colorHexField("Heading color", "hero-color", site.hero.headlineColor || "#ffffff")}
+      ${unitRangeField("Heading size (desktop)", "hero-size-d", site.hero.headlineSizeDesktop || 48, 24, 72, 1, "px")}
+      ${unitRangeField("Heading size (mobile)", "hero-size-m", site.hero.headlineSizeMobile || 24, 16, 48, 1, "px")}
+      ${unitRangeField("Spacing below heading", "hero-spacing", site.hero.spacingAfterHeading ?? 28, 0, 80, 2, "px")}
+    </div>
+    <div class="card"><h3>Bullet style</h3>
+      ${bulletStyleField("List marker design", "hero-bullet", site.hero.bulletStyle || "check-circle")}
+      ${colorHexField("Bullet color", "hero-bullet-color", site.hero.bulletColor || "#0aaa7c")}
+      <p class="card-desc">Choose how feature bullets look on the hero — same idea as Shopify list markers.</p>
     </div>`;
   }
 
@@ -1250,9 +1421,13 @@ function renderEditor() {
   }
 
   if (activeSection === "hero") {
-    bindRange("hero-size-d", (v) => { site.hero.headlineSizeDesktop = parseInt(v, 10) || 48; }, " px");
-    bindRange("hero-size-m", (v) => { site.hero.headlineSizeMobile = parseInt(v, 10) || 24; }, " px");
-    bindRange("hero-spacing", (v) => { site.hero.spacingAfterHeading = parseInt(v, 10) || 0; }, " px");
+    bindFontPicker("hero-font", (v) => { site.hero.headingFont = v; });
+    bindColorHex("hero-color", (v) => { site.hero.headlineColor = v; });
+    bindUnitRange("hero-size-d", (v) => { site.hero.headlineSizeDesktop = parseInt(v, 10) || 48; });
+    bindUnitRange("hero-size-m", (v) => { site.hero.headlineSizeMobile = parseInt(v, 10) || 24; });
+    bindUnitRange("hero-spacing", (v) => { site.hero.spacingAfterHeading = parseInt(v, 10) || 0; });
+    bindBulletStyle("hero-bullet", (v) => { site.hero.bulletStyle = v; });
+    bindColorHex("hero-bullet-color", (v) => { site.hero.bulletColor = v; });
   }
 
   if (activeSection === "partners") {
@@ -1261,11 +1436,17 @@ function renderEditor() {
     styleCard.className = "card";
     styleCard.innerHTML = `<h3>Heading</h3>
       ${field("Section title", site.hiringPartners.title, "text", "hp-title")}
+      ${fontPickerField("Heading font", "hp-font", site.hiringPartners.headingFont || "")}
       ${selectField("Heading alignment", "hp-align", site.hiringPartners.headingAlign || "center", [["left", "Left"], ["center", "Center"], ["right", "Right"]])}
-      ${rangeField("Heading size", "hp-size", site.hiringPartners.headingSize || 28, 18, 48, 1, " px")}`;
+      ${unitRangeField("Heading size", "hp-size", site.hiringPartners.headingSize || 36, 18, 64, 1, "px")}
+      ${colorHexField("Heading color", "hp-color", site.hiringPartners.headingColor || "#121212")}
+      ${unitRangeField("Spacing below heading", "hp-spacing", site.hiringPartners.headingSpacing ?? 0, 0, 80, 2, "px")}`;
     ed().appendChild(styleCard);
     bindField("hp-title", (v) => { site.hiringPartners.title = v; });
-    bindRange("hp-size", (v) => { site.hiringPartners.headingSize = parseInt(v, 10) || 28; }, " px");
+    bindFontPicker("hp-font", (v) => { site.hiringPartners.headingFont = v; });
+    bindUnitRange("hp-size", (v) => { site.hiringPartners.headingSize = parseInt(v, 10) || 36; });
+    bindColorHex("hp-color", (v) => { site.hiringPartners.headingColor = v; });
+    bindUnitRange("hp-spacing", (v) => { site.hiringPartners.headingSpacing = parseInt(v, 10) || 0; });
     $("#hp-align")?.addEventListener("change", (e) => { site.hiringPartners.headingAlign = e.target.value; markDirty(); });
 
     const card = document.createElement("div");
@@ -1316,13 +1497,23 @@ function renderEditor() {
     ensureSiteShapes();
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h3>Content</h3>
+    card.innerHTML = `<h3>Heading</h3>
       ${field("Section title", site.alumni?.title || "Alumni Spotlight", "text", "alumni-title")}
-      ${rangeField("Mobile carousel speed", "alumni-speed", site.alumni?.autoplaySeconds || 5, 2, 15, 1, "s")}
+      ${fontPickerField("Heading font", "alumni-font", site.alumni?.headingFont || "")}
+      ${selectField("Heading alignment", "alumni-align", site.alumni?.headingAlign || "center", [["left", "Left"], ["center", "Center"], ["right", "Right"]])}
+      ${unitRangeField("Heading size", "alumni-size", site.alumni?.headingSize || 36, 18, 64, 1, "px")}
+      ${colorHexField("Heading color", "alumni-color", site.alumni?.headingColor || "#121212")}
+      ${unitRangeField("Spacing below heading", "alumni-spacing", site.alumni?.headingSpacing ?? 32, 0, 80, 2, "px")}
+      ${unitRangeField("Mobile carousel speed", "alumni-speed", site.alumni?.autoplaySeconds || 5, 2, 15, 1, "s")}
       <p class="card-desc">Desktop shows a grid. Mobile uses the carousel.</p>`;
     ed().appendChild(card);
     bindField("alumni-title", (v) => { site.alumni.title = v; });
-    bindRange("alumni-speed", (v) => { site.alumni.autoplaySeconds = parseInt(v, 10) || 5; }, "s");
+    bindFontPicker("alumni-font", (v) => { site.alumni.headingFont = v; });
+    bindUnitRange("alumni-size", (v) => { site.alumni.headingSize = parseInt(v, 10) || 36; });
+    bindColorHex("alumni-color", (v) => { site.alumni.headingColor = v; });
+    bindUnitRange("alumni-spacing", (v) => { site.alumni.headingSpacing = parseInt(v, 10) || 0; });
+    bindUnitRange("alumni-speed", (v) => { site.alumni.autoplaySeconds = parseInt(v, 10) || 5; });
+    $("#alumni-align")?.addEventListener("change", (e) => { site.alumni.headingAlign = e.target.value; markDirty(); });
 
     const listCard = document.createElement("div");
     listCard.className = "card";
@@ -1458,9 +1649,12 @@ function renderEditor() {
       </div>`;
     }).join("");
 
-    const fontOptions = themes.fonts.map((f) =>
+    const fontOptions = (themes.fonts || []).map((f) =>
       `<option value="${f.id}" ${site.theme?.custom?.fontPreset === f.id ? "selected" : ""}>${f.label}</option>`
     ).join("");
+
+    if (!site.theme) site.theme = { presetId: "nexus-classic", custom: {} };
+    if (!site.theme.custom) site.theme.custom = {};
 
     html = `<div class="card"><h3>Coaching Theme Gallery</h3>
       <p class="card-desc">Pick a theme for colors. Your current font stays locked unless you change it below.</p>
@@ -1469,15 +1663,17 @@ function renderEditor() {
     </div>
     <div class="card"><h3>Custom Colors</h3>
       <div class="color-grid">
-        ${field("Primary accent", site.theme?.custom?.colors?.primary || "", "color", "c-primary")}
-        ${field("Hero background", site.theme?.custom?.colors?.heroBg || "", "color", "c-hero")}
-        ${field("Ticker background", site.theme?.custom?.colors?.tickerBg || "", "color", "c-ticker")}
-        ${field("Journey section bg", site.theme?.custom?.colors?.journeyBg || "", "color", "c-journey")}
+        ${colorHexField("Primary accent", "c-primary", site.theme?.custom?.colors?.primary || "#bc0d5d")}
+        ${colorHexField("Hero background", "c-hero", site.theme?.custom?.colors?.heroBg || "#000000")}
+        ${colorHexField("Ticker background", "c-ticker", site.theme?.custom?.colors?.tickerBg || "#bc0d5d")}
+        ${colorHexField("Journey section bg", "c-journey", site.theme?.custom?.colors?.journeyBg || "#121212")}
       </div>
     </div>
     <div class="card"><h3>Fonts</h3>
-      <label><span>Font preset</span><select id="font-preset">${fontOptions}</select></label>
-      <p class="card-desc">Nexus live site uses Arsenal + Roboto Condensed. Prefer that preset for parity with nexusitacad.com.</p>
+      <label><span>Theme font pair</span><select id="font-preset">${fontOptions}</select></label>
+      ${fontPickerField("Heading font", "theme-heading-font", site.theme.custom.headingFont || "")}
+      ${fontPickerField("Body font", "theme-body-font", site.theme.custom.bodyFont || "")}
+      <p class="card-desc">Theme fonts = site-wide defaults. Override heading/body individually — each option previews in its own typeface (Shopify-style).</p>
     </div>`;
     ed().innerHTML = html;
 
@@ -1497,7 +1693,7 @@ function renderEditor() {
     });
 
     ["c-primary", "c-hero", "c-ticker", "c-journey"].forEach((id) => {
-      bindField(id, (v) => {
+      bindColorHex(id, (v) => {
         if (!site.theme.custom.colors) site.theme.custom.colors = {};
         const key = { "c-primary": "primary", "c-hero": "heroBg", "c-ticker": "tickerBg", "c-journey": "journeyBg" }[id];
         if (v) site.theme.custom.colors[key] = v;
@@ -1509,6 +1705,14 @@ function renderEditor() {
       site.theme.custom.fontPreset = e.target.value;
       markDirty();
     });
+    bindFontPicker("theme-heading-font", (v) => {
+      if (v) site.theme.custom.headingFont = v;
+      else delete site.theme.custom.headingFont;
+    });
+    bindFontPicker("theme-body-font", (v) => {
+      if (v) site.theme.custom.bodyFont = v;
+      else delete site.theme.custom.bodyFont;
+    });
   }
 
   const bindings = {
@@ -1518,7 +1722,6 @@ function renderEditor() {
     "ticker-bold": (v) => { site.ticker.bold = v; },
     "ticker-italic": (v) => { site.ticker.italic = v; },
     "nav-separator": (v) => { site.navigation.showSeparator = v; },
-    "hero-color": (v) => { site.hero.headlineColor = v; },
     "reg-label": (v) => { site.navigation.register.label = v; },
     "reg-url": (v) => { site.navigation.register.url = v; },
     "reg-enabled": (v) => { site.navigation.register.enabled = v; },

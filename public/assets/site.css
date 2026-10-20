@@ -198,11 +198,67 @@ img {
   flex-shrink: 0;
   width: 18px;
   margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero-feature__icon svg {
   width: 18px;
   height: 18px;
+  display: block;
+}
+
+.bullet-shape {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.bullet-shape--disc,
+.bullet-shape--square {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+
+.bullet-shape--square {
+  border-radius: 2px;
+}
+
+.bullet-shape--circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  margin-top: 4px;
+  box-sizing: border-box;
+}
+
+.bullet-shape--dash {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 8px;
+}
+
+.bullet-shape--diamond {
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  margin-top: 5px;
+}
+
+.bullet-shape--number {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-family: var(--font-body);
 }
 
 /* Sections */

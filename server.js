@@ -10,7 +10,7 @@ const path = require("path");
 const fs = require("fs");
 const { getSite, saveSite, resetSite, listVersions, getVersion, restoreVersion } = require("./lib/store");
 const { renderSite } = require("./lib/renderer");
-const { THEME_PRESETS, FONT_OPTIONS } = require("./lib/themes");
+const { THEME_PRESETS, FONT_OPTIONS, ALL_FONTS, BULLET_STYLES } = require("./lib/themes");
 const { buildDnsRecords, buildNginxConfig, buildSetupSteps, isValidIpv4 } = require("./lib/domain");
 const { IMAGE_PRESETS, ensureUploadDir, processAndSaveImage, localizeSiteImages, UPLOAD_DIR } = require("./lib/images");
 
@@ -145,7 +145,12 @@ app.get("/api/admin/media", requireAuth, (req, res) => {
 });
 
 app.get("/api/admin/themes", requireAuth, (req, res) => {
-  res.json({ presets: THEME_PRESETS, fonts: FONT_OPTIONS });
+  res.json({
+    presets: THEME_PRESETS,
+    fonts: FONT_OPTIONS,
+    allFonts: ALL_FONTS,
+    bulletStyles: BULLET_STYLES
+  });
 });
 
 app.get("/api/admin/domain/setup", requireAuth, (req, res) => {
