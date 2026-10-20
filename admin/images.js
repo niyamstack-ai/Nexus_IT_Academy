@@ -3,6 +3,7 @@ let cropper = null;
 let cropCallback = null;
 let cropPreset = null;
 let mediaPickCallback = null;
+let cropModalHiddenForLibrary = false;
 
 async function loadImagePresets() {
   if (Object.keys(imagePresets).length) return imagePresets;
@@ -31,66 +32,121 @@ async function uploadImageDataUrl(dataUrl, preset) {
   return data;
 }
 
+function setCropPreviewEmpty() {
+  const preview = document.getElementById("crop-preview-img");
+  const placeholder = document.getElementById("crop-preview-placeholder");
+  if (preview) {
+    preview.removeAttribute("src");
+    preview.classList.add("hidden");
+  }
+  placeholder?.classList.remove("hidden");
+}
+
 function openCropModal(presetId, currentUrl, onDone) {
   cropCallback = onDone;
   cropPreset = presetId;
+  cropModalHiddenForLibrary = false;
   const modal = document.getElementById("crop-modal");
   const hint = document.getElementById("crop-hint");
-  const preview = document.getElementById("crop-preview-img");
   const fileInput = document.getElementById("crop-file-input");
 
   loadImagePresets().then((presets) => {
     const p = presets[presetId] || {};
-    hint.textContent = p.hint || "Adjust crop then click Upload";
-    modal.classList.remove("hidden");
-    preview.src = "";
-    fileInput.value = "";
+    if (hint) hint.textContent = p.hint || "Adjust crop then click Upload";
+    modal?.classList.remove("hidden");
+    if (fileInput) fileInput.value = "";
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
+    setCropPreviewEmpty();
   });
 }
 
 function initCropper(file) {
   const preview = document.getElementById("crop-preview-img");
+  const placeholder = document.getElementById("crop-preview-placeholder");
+  if (!preview || !file) return;
+
   const reader = new FileReader();
+  reader.onerror = () => {
+    if (window.showToast) window.showToast("Could not read that file", "error");
+  };
   reader.onload = () => {
-    preview.src = reader.result;
-    preview.onload = () => {
-      if (cropper) cropper.destroy();
-      loadImagePresets().then((presets) => {
-        const p = presets[cropPreset] || { aspectRatio: 1 };
-        cropper = new Cropper(preview, {
-          aspectRatio: Number.isFinite(p.aspectRatio) ? p.aspectRatio : NaN,
-          viewMode: 1,
-          dragMode: "move",
-          autoCropArea: 1,
-          responsive: true,
-          background: false
+    const dataUrl = reader.result;
+
+    const startCropper = () => {
+      placeholder?.classList.add("hidden");
+      preview.classList.remove("hidden");
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+      loadImagePresets()
+        .then((presets) => {
+          const p = presets[cropPreset] || { aspectRatio: NaN };
+          cropper = new Cropper(preview, {
+            aspectRatio: Number.isFinite(p.aspectRatio) ? p.aspectRatio : NaN,
+            viewMode: 1,
+            dragMode: "move",
+            autoCropArea: 1,
+            responsive: true,
+            background: false
+          });
+        })
+        .catch((err) => {
+          if (window.showToast) window.showToast(err.message || "Cropper failed", "error");
         });
-      });
     };
+
+    preview.onload = startCropper;
+    preview.onerror = () => {
+      setCropPreviewEmpty();
+      if (window.showToast) window.showToast("Could not load image for crop preview", "error");
+    };
+    preview.src = dataUrl;
+    // Cached images may load synchronously and skip onload
+    if (preview.complete && preview.naturalWidth > 0) startCropper();
   };
   reader.readAsDataURL(file);
 }
 
 async function uploadCroppedImage() {
-  if (!cropper || !cropPreset) return;
+  if (!cropPreset) {
+    if (window.showToast) {
+      window.showToast("Open Upload & Crop from an image field first", "error");
+    } else {
+      alert("Open Upload & Crop from an image field first");
+    }
+    return;
+  }
+  if (!cropper) {
+    if (window.showToast) {
+      window.showToast("Choose an image first (computer or library)", "error");
+    } else {
+      alert("Choose an image first (computer or library)");
+    }
+    return;
+  }
+
   const presets = await loadImagePresets();
-  const p = presets[cropPreset];
+  const p = presets[cropPreset] || {};
   const canvasOpts = Number.isFinite(p.aspectRatio)
     ? { width: p.width, height: p.height, imageSmoothingQuality: "high" }
-    : { maxWidth: p.width, maxHeight: p.height, imageSmoothingQuality: "high" };
+    : { maxWidth: p.width || 1600, maxHeight: p.height || 1600, imageSmoothingQuality: "high" };
   const canvas = cropper.getCroppedCanvas(canvasOpts);
+  if (!canvas) {
+    throw new Error("Could not crop image — try another file");
+  }
   const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
   const data = await uploadImageDataUrl(dataUrl, cropPreset);
 
-  document.getElementById("crop-modal").classList.add("hidden");
+  document.getElementById("crop-modal")?.classList.add("hidden");
   if (cropper) {
     cropper.destroy();
     cropper = null;
   }
+  setCropPreviewEmpty();
   if (cropCallback) cropCallback(data.url, data);
   if (window.showToast) window.showToast(`Image uploaded (${data.sizeKB} KB, compressed)`);
   cropCallback = null;
@@ -99,13 +155,26 @@ async function uploadCroppedImage() {
 function closeMediaLibrary() {
   document.getElementById("media-library-modal")?.classList.add("hidden");
   mediaPickCallback = null;
+  if (cropModalHiddenForLibrary) {
+    document.getElementById("crop-modal")?.classList.remove("hidden");
+    cropModalHiddenForLibrary = false;
+  }
 }
 
-async function openMediaLibrary(onPick) {
+async function openMediaLibrary(onPick, options = {}) {
   mediaPickCallback = onPick || null;
   const modal = document.getElementById("media-library-modal");
   const grid = document.getElementById("media-library-grid");
   if (!modal || !grid) return;
+
+  if (options.fromCrop) {
+    const cropModal = document.getElementById("crop-modal");
+    if (cropModal && !cropModal.classList.contains("hidden")) {
+      cropModal.classList.add("hidden");
+      cropModalHiddenForLibrary = true;
+    }
+  }
+
   grid.innerHTML = `<p class="card-desc">Loading…</p>`;
   modal.classList.remove("hidden");
   try {
@@ -128,8 +197,15 @@ async function openMediaLibrary(onPick) {
     grid.querySelectorAll("[data-media-url]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const url = btn.dataset.mediaUrl;
-        if (mediaPickCallback) mediaPickCallback(url);
-        closeMediaLibrary();
+        const cb = mediaPickCallback;
+        // Close library first; restore crop modal if needed inside closeMediaLibrary
+        document.getElementById("media-library-modal")?.classList.add("hidden");
+        mediaPickCallback = null;
+        if (cropModalHiddenForLibrary) {
+          document.getElementById("crop-modal")?.classList.remove("hidden");
+          cropModalHiddenForLibrary = false;
+        }
+        if (cb) cb(url);
       });
     });
   } catch (err) {
@@ -236,30 +312,40 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("crop-cancel-btn")?.addEventListener("click", () => {
-    document.getElementById("crop-modal").classList.add("hidden");
+    document.getElementById("crop-modal")?.classList.add("hidden");
     if (cropper) {
       cropper.destroy();
       cropper = null;
     }
     cropCallback = null;
+    cropModalHiddenForLibrary = false;
+    setCropPreviewEmpty();
   });
 
   document.getElementById("crop-upload-btn")?.addEventListener("click", () => {
-    uploadCroppedImage().catch((err) => alert(err.message));
+    uploadCroppedImage().catch((err) => {
+      if (window.showToast) window.showToast(err.message, "error");
+      else alert(err.message);
+    });
   });
 
   document.getElementById("crop-from-library-btn")?.addEventListener("click", () => {
-    openMediaLibrary(async (url) => {
-      try {
-        const abs = url.startsWith("http") ? url : `${location.origin}${url}`;
-        const res = await fetch(abs);
-        const blob = await res.blob();
-        const file = new File([blob], "library-image.webp", { type: blob.type || "image/webp" });
-        initCropper(file);
-      } catch (err) {
-        alert(err.message || "Could not load library image");
-      }
-    });
+    openMediaLibrary(
+      async (url) => {
+        try {
+          const abs = url.startsWith("http") ? url : `${location.origin}${url}`;
+          const res = await fetch(abs);
+          if (!res.ok) throw new Error("Could not fetch library image");
+          const blob = await res.blob();
+          const file = new File([blob], "library-image.webp", { type: blob.type || "image/webp" });
+          initCropper(file);
+        } catch (err) {
+          if (window.showToast) window.showToast(err.message || "Could not load library image", "error");
+          else alert(err.message || "Could not load library image");
+        }
+      },
+      { fromCrop: true }
+    );
   });
 
   document.getElementById("media-library-close")?.addEventListener("click", closeMediaLibrary);

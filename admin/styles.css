@@ -714,6 +714,24 @@ body {
   align-items: center;
 }
 
+.crop-preview-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.crop-preview-wrap img.hidden,
+#crop-preview-placeholder.hidden {
+  display: none !important;
+}
+
 .unit-range-field,
 .color-hex-field,
 .font-picker-field,

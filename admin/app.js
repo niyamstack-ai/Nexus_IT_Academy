@@ -1397,7 +1397,10 @@ function renderBlockEditor(blockId) {
   card.innerHTML = body;
   ed().appendChild(card);
 
-  bindField("blk-title", (v) => { block.title = v; });
+  bindField("blk-title", (v) => {
+    block.title = v;
+    renderSectionTree();
+  });
   bindField("blk-subtitle", (v) => { block.subtitle = v; });
   bindField("blk-body", (v) => { block.body = v; });
   bindField("blk-label", (v) => { block.label = v; });
@@ -1475,7 +1478,7 @@ function renderBlockEditor(blockId) {
     mediaCard.innerHTML = `<h3>Images</h3>`;
     ed().appendChild(mediaCard);
     mediaCard.appendChild(listField("Image", block.items, [
-      { key: "image", label: "Image", type: "image", preset: "alumni" },
+      { key: "image", label: "Image", type: "image", preset: block.type === "image-slider" || block.type === "image-row" ? "bannerImage" : "alumni" },
       { key: "alt", label: "Alt text" }
     ], () => {}, { addLabel: "+ Add image" }));
   }
@@ -1485,7 +1488,8 @@ function renderBlockEditor(blockId) {
     imgCard.className = "card";
     imgCard.innerHTML = `<h3>Image</h3>`;
     ed().appendChild(imgCard);
-    imgCard.appendChild(createImageField("Image", block.image || "", "alumni", (url) => {
+    const imagePreset = block.type === "single-image" || block.type === "mobile-image" ? "bannerImage" : "alumni";
+    imgCard.appendChild(createImageField("Image", block.image || "", imagePreset, (url) => {
       block.image = url;
       markDirty();
     }));
