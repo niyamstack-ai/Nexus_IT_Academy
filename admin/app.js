@@ -41,18 +41,18 @@ const CANVAS_TO_EDITOR = {
   contact: "contact"
 };
 
+/** Keep sidebar simple — edit happens by clicking the website */
 const DAILY_SECTIONS = [
-  { id: "canvas", icon: "🖼", title: "Page canvas", desc: "Click the website to edit any section" },
-  { id: "quick", icon: "⚡", title: "Quick Updates", desc: "Jump to weekly edits" },
-  { id: "ticker", icon: "📢", title: "Announcement Bar", desc: "Scrolling highlights" },
+  { id: "canvas", icon: "🖼", title: "Edit website", desc: "Click any section on the page · drag ⋮⋮ to reorder" },
   { id: "batch", icon: "📅", title: "Next Batch", desc: "Date, time & Join Community" },
-  { id: "fees", icon: "💰", title: "Fee Structure", desc: "Pay-after-placement pricing" },
-  { id: "alumni", icon: "🎓", title: "Alumni Spotlight", desc: "Student placement photos" },
-  { id: "hero", icon: "🎯", title: "Hero Section", desc: "Main headline and bullets" },
-  { id: "course", icon: "📘", title: "Course / Syllabus", desc: "Modules, roles, skill tags" }
+  { id: "fees", icon: "💰", title: "Fees", desc: "Pay-after-placement pricing" },
+  { id: "alumni", icon: "🎓", title: "Alumni", desc: "Student placement photos" },
+  { id: "hero", icon: "🎯", title: "Hero", desc: "Main headline and bullets" }
 ];
 
 const ADVANCED_SECTIONS = [
+  { id: "ticker", icon: "📢", title: "Announcement Bar", desc: "Scrolling highlights" },
+  { id: "course", icon: "📘", title: "Course / Syllabus", desc: "Modules, roles, skill tags" },
   { id: "navigation", icon: "🔗", title: "Register & Login", desc: "Button labels and external links" },
   { id: "partners", icon: "🏢", title: "Hiring Partners", desc: "Company logo carousel" },
   { id: "journey", icon: "🛤️", title: "Journey Steps", desc: "Your Journey at Nexus IT" },
@@ -267,10 +267,10 @@ function renderNav() {
   const dailyHtml = DAILY_SECTIONS.map(navButton).join("");
   const advancedHtml = ADVANCED_SECTIONS.map(navButton).join("");
   $("#sidebar-nav").innerHTML = `
-    <div class="nav-group-label">Daily edit</div>
+    <div class="nav-group-label">Start here</div>
     ${dailyHtml}
     <button type="button" class="nav-toggle" id="advanced-toggle" aria-expanded="${advancedOpen}">
-      <span>${advancedOpen ? "▾" : "▸"} More options</span>
+      <span>${advancedOpen ? "▾" : "▸"} More (optional)</span>
     </button>
     <div class="nav-advanced${advancedOpen ? " open" : ""}" id="nav-advanced">
       ${advancedHtml}
@@ -555,48 +555,19 @@ function renderCanvasHome() {
   const wrap = document.createElement("div");
   wrap.innerHTML = `
     <div class="card builder-hint">
-      <strong>Click any section on the website</strong> (right) to edit it here.
-      Hover shows pink outlines. Drag layers below to reorder page sections.
+      <strong>How to edit (simple)</strong><br>
+      1. On the right website: <strong>click</strong> Hero / Fees / Alumni / Batch…<br>
+      2. Fields open here on the left — change text, then <strong>Save &amp; Publish</strong><br>
+      3. On the website: drag the <strong>⋮⋮ Drag</strong> button to move sections up/down<br>
+      4. Drag the pink bar between panels (or preview edge) to resize
     </div>
     <div class="card">
-      <h3>Page structure</h3>
-      <p class="card-desc">Drag ⋮⋮ to change order on the live page. Ticker and header stay on top.</p>
+      <h3>Section order</h3>
+      <p class="card-desc">Same as dragging on the page. Ticker + header stay fixed on top.</p>
       <div id="layers-root"></div>
-    </div>
-    <div class="card">
-      <h3>This week</h3>
-      <div class="quick-jump">
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="batch">Next Batch</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="fees">Fees</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="ticker">Ticker</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="alumni">Alumni</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="hero">Hero</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="course">Syllabus</button>
-      </div>
     </div>`;
   editor.appendChild(wrap);
   renderLayersList($("#layers-root"));
-}
-
-function renderQuickUpdates() {
-  ensureSiteShapes();
-  const wrap = document.createElement("div");
-  wrap.className = "quick-updates";
-  wrap.innerHTML = `
-    <div class="card quick-hero-card">
-      <h3>This week’s checklist</h3>
-      <p class="card-desc">Jump to a section, or click it on the canvas.</p>
-      <div class="quick-jump">
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="batch">Batch</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="fees">Fees</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="ticker">Ticker</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="alumni">Alumni</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="hero">Hero</button>
-        <button type="button" class="btn btn-secondary btn-sm" data-goto="course">Syllabus</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-goto="canvas">Page structure</button>
-      </div>
-    </div>`;
-  editor.appendChild(wrap);
 }
 
 function renderEditor() {
@@ -612,12 +583,6 @@ function renderEditor() {
 
   if (activeSection === "canvas") {
     renderCanvasHome();
-    wireGotoAndLocalize();
-    return;
-  }
-
-  if (activeSection === "quick") {
-    renderQuickUpdates();
     wireGotoAndLocalize();
     return;
   }
@@ -1069,11 +1034,95 @@ async function saferReset() {
   showToast("Restored template defaults");
 }
 
-function setCanvasDevice(device) {
+let customCanvasWidth = 900;
+
+function setCanvasDevice(device, widthPx) {
   canvasDevice = device;
-  $("#canvas-frame-wrap")?.setAttribute("data-device", device);
+  const wrap = $("#canvas-frame-wrap");
+  if (!wrap) return;
+  wrap.setAttribute("data-device", device);
+  if (device === "custom") {
+    if (widthPx) customCanvasWidth = Math.round(widthPx);
+    wrap.style.setProperty("--canvas-custom-width", `${customCanvasWidth}px`);
+  }
   document.querySelectorAll(".device-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.device === device);
+  });
+}
+
+function applySectionOrderFromCanvas(order) {
+  if (!Array.isArray(order) || !order.length) return;
+  const cleaned = order.filter((id) => DEFAULT_SECTION_ORDER.includes(id));
+  for (const id of DEFAULT_SECTION_ORDER) {
+    if (!cleaned.includes(id)) cleaned.push(id);
+  }
+  site.sectionOrder = cleaned;
+  markDirty();
+  showToast("Section moved — click Save & Publish when ready");
+  scheduleLivePreview();
+  if (activeSection === "canvas") renderEditor();
+}
+
+function initPanelSplitter() {
+  const splitter = $("#panel-splitter");
+  const body = $("#workspace-body");
+  if (!splitter || !body) return;
+
+  let dragging = false;
+
+  const onMove = (clientX) => {
+    if (!dragging) return;
+    const rect = body.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const width = Math.min(520, Math.max(240, x));
+    body.style.setProperty("--inspector-width", `${width}px`);
+  };
+
+  splitter.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    splitter.classList.add("dragging");
+    splitter.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  splitter.addEventListener("pointermove", (e) => onMove(e.clientX));
+  splitter.addEventListener("pointerup", () => {
+    dragging = false;
+    splitter.classList.remove("dragging");
+  });
+  splitter.addEventListener("pointercancel", () => {
+    dragging = false;
+    splitter.classList.remove("dragging");
+  });
+}
+
+function initCanvasResize() {
+  const handle = $("#canvas-resize-handle");
+  const wrap = $("#canvas-frame-wrap");
+  const panel = $("#preview-panel");
+  if (!handle || !wrap || !panel) return;
+
+  let dragging = false;
+
+  handle.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    handle.classList.add("dragging");
+    handle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  handle.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const rect = panel.getBoundingClientRect();
+    const pad = 24;
+    const width = Math.min(rect.width - pad, Math.max(320, e.clientX - rect.left - 12));
+    setCanvasDevice("custom", width);
+  });
+  handle.addEventListener("pointerup", () => {
+    dragging = false;
+    handle.classList.remove("dragging");
+  });
+  handle.addEventListener("pointercancel", () => {
+    dragging = false;
+    handle.classList.remove("dragging");
   });
 }
 
@@ -1087,6 +1136,8 @@ async function initApp() {
   previewVisible = true;
   clearDirty();
   setCanvasDevice(canvasDevice);
+  initPanelSplitter();
+  initCanvasResize();
   renderNav();
   renderEditor();
   syncLivePreview().catch(() => refreshPreview());
@@ -1140,6 +1191,9 @@ window.addEventListener("message", (e) => {
   const data = e.data || {};
   if (data.type === "nexus-select" && data.section) {
     selectFromCanvas(data.section);
+  }
+  if (data.type === "nexus-reorder" && Array.isArray(data.order)) {
+    applySectionOrderFromCanvas(data.order);
   }
   if (data.type === "nexus-ready") {
     highlightSectionInPreview();

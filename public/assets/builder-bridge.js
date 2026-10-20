@@ -15,7 +15,12 @@
     contact: "Contact / Footer"
   };
 
+  const REORDERABLE = new Set([
+    "hero", "partners", "alumni", "journey", "guarantee", "course", "jobs", "fees", "eligibility", "batch", "contact"
+  ]);
+
   let selected = null;
+  let dragId = null;
 
   function nearestSection(el) {
     return el && el.closest ? el.closest("[data-nexus-section]") : null;
@@ -34,9 +39,76 @@
     }
   }
 
+  function post(msg) {
+    if (window.parent !== window) window.parent.postMessage(msg, "*");
+  }
+
+  function currentOrder() {
+    return [...document.querySelectorAll("[data-nexus-section]")]
+      .map((n) => n.getAttribute("data-nexus-section"))
+      .filter((id) => REORDERABLE.has(id));
+  }
+
+  function decorateSections() {
+    document.querySelectorAll("[data-nexus-section]").forEach((node) => {
+      const id = node.getAttribute("data-nexus-section");
+      if (!node.querySelector(".nexus-section-label")) {
+        const chip = document.createElement("span");
+        chip.className = "nexus-section-label";
+        chip.textContent = LABEL[id] || id;
+        node.appendChild(chip);
+      }
+      if (REORDERABLE.has(id) && !node.querySelector(".nexus-drag-handle")) {
+        const handle = document.createElement("button");
+        handle.type = "button";
+        handle.className = "nexus-drag-handle";
+        handle.title = "Drag to reorder this section";
+        handle.textContent = "⋮⋮ Drag";
+        handle.draggable = true;
+        handle.addEventListener("dragstart", (e) => {
+          dragId = id;
+          e.dataTransfer.setData("text/plain", id);
+          e.dataTransfer.effectAllowed = "move";
+          node.classList.add("nexus-dragging");
+          post({ type: "nexus-select", section: id });
+        });
+        handle.addEventListener("dragend", () => {
+          node.classList.remove("nexus-dragging");
+          document.querySelectorAll(".nexus-drag-over").forEach((n) => n.classList.remove("nexus-drag-over"));
+          dragId = null;
+        });
+        node.appendChild(handle);
+      }
+
+      if (REORDERABLE.has(id)) {
+        node.addEventListener("dragover", (e) => {
+          if (!dragId || dragId === id) return;
+          e.preventDefault();
+          node.classList.add("nexus-drag-over");
+        });
+        node.addEventListener("dragleave", () => node.classList.remove("nexus-drag-over"));
+        node.addEventListener("drop", (e) => {
+          e.preventDefault();
+          node.classList.remove("nexus-drag-over");
+          const fromId = e.dataTransfer.getData("text/plain") || dragId;
+          const toId = id;
+          if (!fromId || fromId === toId || !REORDERABLE.has(fromId)) return;
+          const order = currentOrder();
+          const from = order.indexOf(fromId);
+          const to = order.indexOf(toId);
+          if (from < 0 || to < 0) return;
+          order.splice(from, 1);
+          order.splice(to, 0, fromId);
+          post({ type: "nexus-reorder", order });
+        });
+      }
+    });
+  }
+
   document.addEventListener(
     "click",
     (e) => {
+      if (e.target.closest && e.target.closest(".nexus-drag-handle")) return;
       const a = e.target.closest && e.target.closest("a");
       if (a) {
         e.preventDefault();
@@ -48,9 +120,7 @@
       e.stopPropagation();
       const id = section.getAttribute("data-nexus-section");
       setSelected(id);
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: "nexus-select", section: id }, "*");
-      }
+      post({ type: "nexus-select", section: id });
     },
     true
   );
@@ -64,17 +134,6 @@
     }
   });
 
-  document.querySelectorAll("[data-nexus-section]").forEach((node) => {
-    const id = node.getAttribute("data-nexus-section");
-    if (!node.querySelector(".nexus-section-label")) {
-      const chip = document.createElement("span");
-      chip.className = "nexus-section-label";
-      chip.textContent = LABEL[id] || id;
-      node.appendChild(chip);
-    }
-  });
-
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: "nexus-ready" }, "*");
-  }
+  decorateSections();
+  post({ type: "nexus-ready" });
 })();

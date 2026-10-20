@@ -21,6 +21,15 @@
   z-index: 3;
 }
 
+[data-nexus-section].nexus-dragging {
+  opacity: 0.55;
+}
+
+[data-nexus-section].nexus-drag-over {
+  outline-color: #0aaa7c;
+  outline-style: dashed;
+}
+
 .nexus-section-label {
   position: absolute;
   top: 8px;
@@ -40,10 +49,36 @@
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
+.nexus-drag-handle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 21;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #111827;
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: grab;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.nexus-drag-handle:active {
+  cursor: grabbing;
+}
+
 [data-nexus-section]:hover .nexus-section-label,
-[data-nexus-section].nexus-selected .nexus-section-label {
+[data-nexus-section].nexus-selected .nexus-section-label,
+[data-nexus-section]:hover .nexus-drag-handle,
+[data-nexus-section].nexus-selected .nexus-drag-handle {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 body.nexus-builder a {
