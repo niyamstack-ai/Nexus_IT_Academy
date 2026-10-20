@@ -273,6 +273,18 @@ body {
   font-size: 1rem;
 }
 
+.range-field em {
+  float: right;
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.range-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
 .shopify-body .canvas-panel {
   border: none;
 }

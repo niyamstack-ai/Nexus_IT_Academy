@@ -408,7 +408,7 @@ function listField(label, items, fields, onChange, options = {}) {
         const input = document.createElement(f.type === "textarea" ? "textarea" : "input");
         input.type = f.type || "text";
         input.value = item[f.key] || "";
-        input.placeholder = f.placeholder || "";
+        if (f.placeholder) input.placeholder = f.placeholder;
         input.addEventListener("input", () => {
           item[f.key] = input.value;
           onChange();
@@ -530,6 +530,30 @@ function field(label, value, type = "text", id = null) {
   return `<label><span>${label}</span><input type="${type}" id="${fieldId}" value="${escapeAttr(value || "")}"></label>`;
 }
 
+function selectField(label, id, value, options) {
+  const opts = options
+    .map(([val, text]) => `<option value="${escapeAttr(val)}" ${String(value) === String(val) ? "selected" : ""}>${escapeHtml(text)}</option>`)
+    .join("");
+  return `<label><span>${label}</span><select id="${id}">${opts}</select></label>`;
+}
+
+function rangeField(label, id, value, min, max, step = 1, suffix = "") {
+  const v = value ?? min;
+  return `<label class="range-field"><span>${label} <em id="${id}-val">${v}${suffix}</em></span>
+    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"></label>`;
+}
+
+function bindRange(id, onChange, suffix = "") {
+  const el = document.getElementById(id);
+  const label = document.getElementById(`${id}-val`);
+  if (!el) return;
+  el.addEventListener("input", () => {
+    if (label) label.textContent = `${el.value}${suffix}`;
+    onChange(el.value);
+    markDirty();
+  });
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -637,34 +661,62 @@ function renderEditor() {
   }
 
   if (activeSection === "ticker") {
-    html = `<div class="card"><h3>Scrolling Announcement Bar</h3>
-      ${field("Enabled", site.ticker?.enabled !== false, "checkbox", "ticker-enabled")}
-      ${field("Scroll speed (seconds)", site.ticker?.speed || 75, "number", "ticker-speed")}
-      ${field("Ticker items (one per line)", arrayToLines(site.ticker?.items), "textarea", "ticker-items")}
-      <p class="card-desc">Example: 🧑‍🎓 100+ Genuine Placement — update anytime when numbers change.</p>
+    if (!site.ticker) site.ticker = { enabled: true, items: [], speed: 75 };
+    html = `<div class="card"><h3>Content</h3>
+      ${field("Show ticker", site.ticker.enabled !== false, "checkbox", "ticker-enabled")}
+      ${field("Ticker items (one per line)", arrayToLines(site.ticker.items), "textarea", "ticker-items")}
+      <p class="card-desc">Example: 🧑‍🎓 100+ Genuine Placement</p>
+    </div>
+    <div class="card"><h3>Style</h3>
+      ${rangeField("Ticker speed (seconds)", "ticker-speed", site.ticker.speed || 75, 20, 120, 1, "s")}
+      ${rangeField("Text spacing", "ticker-spacing", site.ticker.textSpacing ?? 3, 1, 6, 0.5, " rem")}
+      ${selectField("Text size", "ticker-size", site.ticker.textSize || "medium", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]])}
+      ${field("Uppercase text", site.ticker.uppercase !== false, "checkbox", "ticker-upper")}
+      ${field("Bold text", site.ticker.bold !== false, "checkbox", "ticker-bold")}
+      ${field("Italic text", !!site.ticker.italic, "checkbox", "ticker-italic")}
+    </div>
+    <div class="card"><h3>Section padding</h3>
+      ${rangeField("Top padding", "ticker-pad-top", site.ticker.paddingTop ?? 12, 0, 48, 2, " px")}
+      ${rangeField("Bottom padding", "ticker-pad-bottom", site.ticker.paddingBottom ?? 12, 0, 48, 2, " px")}
     </div>`;
   }
 
   if (activeSection === "navigation") {
-    html = `<div class="card"><h3>Register Button</h3>
+    if (!site.navigation) site.navigation = { register: {}, login: {} };
+    html = `<div class="card"><h3>Register button</h3>
       ${field("Label", site.navigation?.register?.label, "text", "reg-label")}
-      ${field("URL (Classplus / course store)", site.navigation?.register?.url, "url", "reg-url")}
+      ${field("URL", site.navigation?.register?.url, "url", "reg-url")}
       ${field("Enable link", site.navigation?.register?.enabled, "checkbox", "reg-enabled")}
       ${field("Open in new tab", site.navigation?.register?.openInNewTab, "checkbox", "reg-newtab")}
     </div>
-    <div class="card"><h3>Login Training Program Button</h3>
+    <div class="card"><h3>Login button</h3>
       ${field("Label", site.navigation?.login?.label, "text", "login-label")}
-      ${field("URL (Classplus login)", site.navigation?.login?.url, "url", "login-url")}
+      ${field("URL", site.navigation?.login?.url, "url", "login-url")}
       ${field("Enable link", site.navigation?.login?.enabled, "checkbox", "login-enabled")}
       ${field("Open in new tab", site.navigation?.login?.openInNewTab, "checkbox", "login-newtab")}
-      <p class="card-desc">Disable links to show text only. Change URL when switching from Classplus to another platform.</p>
+    </div>
+    <div class="card"><h3>Header layout</h3>
+      ${selectField("Sticky header", "nav-sticky", site.navigation.sticky || "always", [["always", "Always"], ["never", "Off"]])}
+      ${field("Show separator line", !!site.navigation.showSeparator, "checkbox", "nav-separator")}
+      <div id="wrap-header-logo"></div>
+    </div>
+    <div class="card"><h3>Section padding</h3>
+      ${rangeField("Top padding", "nav-pad-top", site.navigation.paddingTop ?? 16, 0, 48, 2, " px")}
+      ${rangeField("Bottom padding", "nav-pad-bottom", site.navigation.paddingBottom ?? 16, 0, 48, 2, " px")}
     </div>`;
   }
 
   if (activeSection === "hero") {
-    html = `<div class="card"><h3>Hero Section</h3>
-      ${field("Headline", site.hero?.headline, "text", "hero-headline")}
-      ${field("Feature bullets (one per line)", arrayToLines(site.hero?.features), "textarea", "hero-features")}
+    if (!site.hero) site.hero = { headline: "", features: [] };
+    html = `<div class="card"><h3>Content</h3>
+      ${field("Headline", site.hero.headline, "textarea", "hero-headline")}
+      ${field("Feature bullets (one per line)", arrayToLines(site.hero.features), "textarea", "hero-features")}
+    </div>
+    <div class="card"><h3>Headline style</h3>
+      ${field("Heading color", site.hero.headlineColor || "#ffffff", "color", "hero-color")}
+      ${rangeField("Heading size (desktop)", "hero-size-d", site.hero.headlineSizeDesktop || 48, 24, 72, 1, " px")}
+      ${rangeField("Heading size (mobile)", "hero-size-m", site.hero.headlineSizeMobile || 24, 16, 48, 1, " px")}
+      ${rangeField("Spacing after heading", "hero-spacing", site.hero.spacingAfterHeading ?? 28, 0, 80, 2, " px")}
     </div>`;
   }
 
@@ -713,19 +765,19 @@ function renderEditor() {
   if (activeSection === "batch") {
     if (!site.nextBatch) site.nextBatch = { enabled: true };
     if (!site.community) site.community = { enabled: true, floating: false };
-    html = `<div class="card"><h3>Next Batch Launch</h3>
+    html = `<div class="card"><h3>Content</h3>
       ${field("Show next batch section", site.nextBatch.enabled !== false, "checkbox", "batch-enabled")}
       ${field("Badge text", site.nextBatch.badge || "Registration", "text", "batch-badge")}
       ${field("Main title", site.nextBatch.title || "⚡️ Next Batch Launch", "text", "batch-title")}
       ${field("Card eyebrow", site.nextBatch.cardEyebrow || "Attend our Demo session", "text", "batch-eyebrow")}
       ${field("Date / time", site.nextBatch.dateTitle || "", "text", "batch-date")}
-      ${field("Card text", site.nextBatch.cardText || "", "text", "batch-text")}
-      ${field("Button label", site.nextBatch.ctaLabel || "JOIN COMMUNITY", "text", "batch-cta-label")}
-      ${field("Button / WhatsApp URL", site.nextBatch.ctaUrl || "", "url", "batch-cta-url")}
+      ${field("Card text", site.nextBatch.cardText || "", "textarea", "batch-text")}
     </div>
-    <div class="card"><h3>Floating WhatsApp Button</h3>
+    <div class="card"><h3>Join Community button</h3>
+      ${field("Button label", site.nextBatch.ctaLabel || "JOIN COMMUNITY", "text", "batch-cta-label")}
+      ${field("WhatsApp / Community URL", site.nextBatch.ctaUrl || "", "url", "batch-cta-url")}
       ${field("Show floating JOIN COMMUNITY button", site.community.floating === true, "checkbox", "community-float")}
-      <p class="card-desc">Keep this OFF so visitors read Eligibility and full details first. Join Community stays only in the Next Batch section.</p>
+      <p class="card-desc">Keep floating OFF so visitors read the page first.</p>
     </div>`;
   }
 
@@ -746,15 +798,48 @@ function renderEditor() {
     $("#wrap-footer-logo")?.appendChild(createImageField("Footer Logo (upload and crop)", site.footerLogo, "footerLogo", (v) => { site.footerLogo = v; markDirty(); }));
   }
 
+  if (activeSection === "navigation") {
+    $("#wrap-header-logo")?.appendChild(createImageField("Logo", site.logo, "logo", (v) => { site.logo = v; markDirty(); }));
+    bindRange("nav-pad-top", (v) => { site.navigation.paddingTop = parseInt(v, 10) || 0; }, " px");
+    bindRange("nav-pad-bottom", (v) => { site.navigation.paddingBottom = parseInt(v, 10) || 0; }, " px");
+    $("#nav-sticky")?.addEventListener("change", (e) => { site.navigation.sticky = e.target.value; markDirty(); });
+  }
+
+  if (activeSection === "ticker") {
+    bindRange("ticker-speed", (v) => { site.ticker.speed = parseInt(v, 10) || 75; }, "s");
+    bindRange("ticker-spacing", (v) => { site.ticker.textSpacing = parseFloat(v) || 3; }, " rem");
+    bindRange("ticker-pad-top", (v) => { site.ticker.paddingTop = parseInt(v, 10) || 0; }, " px");
+    bindRange("ticker-pad-bottom", (v) => { site.ticker.paddingBottom = parseInt(v, 10) || 0; }, " px");
+    $("#ticker-size")?.addEventListener("change", (e) => { site.ticker.textSize = e.target.value; markDirty(); });
+  }
+
+  if (activeSection === "hero") {
+    bindRange("hero-size-d", (v) => { site.hero.headlineSizeDesktop = parseInt(v, 10) || 48; }, " px");
+    bindRange("hero-size-m", (v) => { site.hero.headlineSizeMobile = parseInt(v, 10) || 24; }, " px");
+    bindRange("hero-spacing", (v) => { site.hero.spacingAfterHeading = parseInt(v, 10) || 0; }, " px");
+  }
+
   if (activeSection === "partners") {
+    if (!site.hiringPartners) site.hiringPartners = { title: "", logos: [] };
+    const styleCard = document.createElement("div");
+    styleCard.className = "card";
+    styleCard.innerHTML = `<h3>Heading</h3>
+      ${field("Section title", site.hiringPartners.title, "text", "hp-title")}
+      ${selectField("Heading alignment", "hp-align", site.hiringPartners.headingAlign || "center", [["left", "Left"], ["center", "Center"], ["right", "Right"]])}
+      ${rangeField("Heading size", "hp-size", site.hiringPartners.headingSize || 28, 18, 48, 1, " px")}`;
+    ed().appendChild(styleCard);
+    bindField("hp-title", (v) => { site.hiringPartners.title = v; });
+    bindRange("hp-size", (v) => { site.hiringPartners.headingSize = parseInt(v, 10) || 28; }, " px");
+    $("#hp-align")?.addEventListener("change", (e) => { site.hiringPartners.headingAlign = e.target.value; markDirty(); });
+
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h3>Hiring Partners Logos</h3>${field("Section title", site.hiringPartners?.title, "text", "hp-title")}`;
+    card.innerHTML = `<h3>Logos</h3><p class="card-desc">Add, replace, or remove partner logos. Drag ⋮⋮ to reorder.</p>`;
     ed().appendChild(card);
-    bindField("hp-title", (v) => { site.hiringPartners.title = v; });
     card.appendChild(listField("Logo", site.hiringPartners.logos, [
       { key: "url", label: "Company logo", type: "image", preset: "partnerLogo" },
-      { key: "alt", label: "Company name (alt text)" }
+      { key: "alt", label: "Company name" },
+      { key: "link", label: "Optional link URL", placeholder: "https://" }
     ], () => {}));
   }
 
@@ -762,14 +847,19 @@ function renderEditor() {
     ensureSiteShapes();
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h3>Alumni Spotlight</h3>
+    card.innerHTML = `<h3>Content</h3>
       ${field("Section title", site.alumni?.title || "Alumni Spotlight", "text", "alumni-title")}
-      ${field("Carousel speed (seconds)", site.alumni?.autoplaySeconds || 5, "number", "alumni-speed")}
-      <p class="card-desc">Upload success story photos. Drag ⋮⋮ to reorder. Use Remove to delete a card.</p>`;
+      ${rangeField("Mobile carousel speed", "alumni-speed", site.alumni?.autoplaySeconds || 5, 2, 15, 1, "s")}
+      <p class="card-desc">Desktop shows a grid. Mobile uses the carousel.</p>`;
     ed().appendChild(card);
     bindField("alumni-title", (v) => { site.alumni.title = v; });
-    bindField("alumni-speed", (v) => { site.alumni.autoplaySeconds = parseInt(v, 10) || 5; });
-    card.appendChild(listField("Story", site.alumni.items, [
+    bindRange("alumni-speed", (v) => { site.alumni.autoplaySeconds = parseInt(v, 10) || 5; }, "s");
+
+    const listCard = document.createElement("div");
+    listCard.className = "card";
+    listCard.innerHTML = `<h3>Alumni photos</h3><p class="card-desc">Add / remove / reorder stories.</p>`;
+    ed().appendChild(listCard);
+    listCard.appendChild(listField("Story", site.alumni.items, [
       { key: "image", label: "Photo", type: "image", preset: "alumni" },
       { key: "alt", label: "Caption / student name" }
     ], () => {}, { addLabel: "+ Add alumni story" }));
@@ -782,7 +872,7 @@ function renderEditor() {
     });
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h3>Syllabus Modules</h3>`;
+    card.innerHTML = `<h3>Syllabus modules</h3><p class="card-desc">Each module = title + bullets. Drag to reorder.</p>`;
     ed().appendChild(card);
     card.appendChild(listField("Module", site.course.modules, [
       { key: "title", label: "Module title" },
@@ -791,7 +881,7 @@ function renderEditor() {
       site.course.modules.forEach((m) => {
         if (typeof m.itemsText === "string") m.items = linesToArray(m.itemsText);
       });
-    }));
+    }, { addLabel: "+ Add module" }));
   }
 
   if (activeSection === "journey") {
@@ -811,7 +901,7 @@ function renderEditor() {
     ensureSiteShapes();
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h3>Fee Structure</h3>
+    card.innerHTML = `<h3>Content</h3>
       ${field("Section title", site.feeStructure?.title, "text", "fee-title")}
       ${field("Subtitle", site.feeStructure?.subtitle, "text", "fee-subtitle")}
       ${field("Total fees label", site.feeStructure?.totalLabel, "text", "fee-total")}`;
@@ -819,11 +909,16 @@ function renderEditor() {
     bindField("fee-title", (v) => { site.feeStructure.title = v; });
     bindField("fee-subtitle", (v) => { site.feeStructure.subtitle = v; });
     bindField("fee-total", (v) => { site.feeStructure.totalLabel = v; });
-    card.appendChild(listField("Fee step", site.feeStructure.steps, [
+
+    const stepsCard = document.createElement("div");
+    stepsCard.className = "card";
+    stepsCard.innerHTML = `<h3>Fee steps</h3><p class="card-desc">Add, edit, or drag to reorder payment steps.</p>`;
+    ed().appendChild(stepsCard);
+    stepsCard.appendChild(listField("Fee step", site.feeStructure.steps, [
       { key: "label", label: "Step label" },
       { key: "title", label: "Amount / title" },
       { key: "description", label: "Description", type: "textarea" }
-    ], () => {}));
+    ], () => {}, { addLabel: "+ Add fee step" }));
   }
 
   if (activeSection === "contact") {
@@ -949,8 +1044,12 @@ function renderEditor() {
 
   const bindings = {
     "ticker-enabled": (v) => { site.ticker.enabled = v; },
-    "ticker-speed": (v) => { site.ticker.speed = parseInt(v, 10) || 75; },
     "ticker-items": (v) => { site.ticker.items = linesToArray(v); },
+    "ticker-upper": (v) => { site.ticker.uppercase = v; },
+    "ticker-bold": (v) => { site.ticker.bold = v; },
+    "ticker-italic": (v) => { site.ticker.italic = v; },
+    "nav-separator": (v) => { site.navigation.showSeparator = v; },
+    "hero-color": (v) => { site.hero.headlineColor = v; },
     "reg-label": (v) => { site.navigation.register.label = v; },
     "reg-url": (v) => { site.navigation.register.url = v; },
     "reg-enabled": (v) => { site.navigation.register.enabled = v; },

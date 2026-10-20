@@ -45,6 +45,7 @@ img {
   color: var(--ticker-text);
   overflow: hidden;
   padding: 12px 0;
+  --ticker-gap: 3rem;
 }
 
 .ticker-track {
@@ -55,13 +56,22 @@ img {
 
 .ticker-item {
   margin: 0;
-  padding: 0 3rem;
+  padding: 0 var(--ticker-gap, 3rem);
   font-size: 1.1rem;
   font-weight: 700;
   text-transform: uppercase;
   white-space: nowrap;
   line-height: 1.2;
 }
+
+.ticker-bar--small .ticker-item { font-size: 0.95rem; }
+.ticker-bar--medium .ticker-item { font-size: 1.1rem; }
+.ticker-bar--large .ticker-item { font-size: 1.35rem; }
+.ticker-bar--uppercase .ticker-item { text-transform: uppercase; }
+.ticker-bar:not(.ticker-bar--uppercase) .ticker-item { text-transform: none; }
+.ticker-bar--bold .ticker-item { font-weight: 700; }
+.ticker-bar:not(.ticker-bar--bold) .ticker-item { font-weight: 500; }
+.ticker-bar--italic .ticker-item { font-style: italic; }
 
 @keyframes tickerScroll {
   to { transform: translateX(-50%); }
@@ -79,6 +89,20 @@ img {
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+.site-header--sticky-never {
+  position: relative;
+  top: auto;
+}
+
+.site-header--sticky-always {
+  position: sticky;
+  top: 0;
+}
+
+.site-header--separator {
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .site-header__nav {
@@ -143,10 +167,16 @@ img {
 .hero h1 {
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: clamp(1.6rem, 4.2vw, 3.5rem);
+  font-size: var(--hero-h1-desktop, clamp(1.6rem, 4.2vw, 3.5rem));
   line-height: 1.15;
   margin: 0 0 28px;
   color: var(--hero-text);
+}
+
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: var(--hero-h1-mobile, clamp(1.6rem, 4.2vw, 3.5rem));
+  }
 }
 
 .hero__features {
