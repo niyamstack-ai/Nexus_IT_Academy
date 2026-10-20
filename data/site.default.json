@@ -13,6 +13,9 @@
     "batch",
     "contact"
   ],
+  "sectionHidden": {
+    "jobs": true
+  },
   "meta": {
     "title": "Nexus IT - Genuine Pay after Placement IT Academy",
     "description": "A Genuine Pay After Placement IT Academy & Placement Firm - Nexus IT Academy"

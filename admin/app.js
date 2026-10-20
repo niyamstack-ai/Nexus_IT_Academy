@@ -70,6 +70,21 @@ const FOOTER_TREE = [
 ];
 
 const THEME_SECTIONS = ["themes", "domain", "settings"];
+const LOCKED_SECTIONS = new Set(["ticker", "navigation", "header", "contact"]);
+const REMOVABLE_SECTIONS = DEFAULT_SECTION_ORDER.filter((id) => id !== "contact");
+
+const SECTION_CATALOG = [
+  { id: "hero", title: "Hero", desc: "Main headline and feature bullets" },
+  { id: "partners", title: "Hiring Partners", desc: "Logo carousel" },
+  { id: "alumni", title: "Alumni Spotlight", desc: "Placement photo stories" },
+  { id: "journey", title: "Journey Steps", desc: "Step-by-step journey" },
+  { id: "guarantee", title: "Placement Guarantee", desc: "Guarantee headline" },
+  { id: "course", title: "Course / Syllabus", desc: "Scrum Master program" },
+  { id: "jobs", title: "Job Profiles", desc: "Optional job profile cards" },
+  { id: "fees", title: "Fee Structure", desc: "Pay-after-placement steps" },
+  { id: "eligibility", title: "Eligibility", desc: "Who can apply" },
+  { id: "batch", title: "Next Batch", desc: "Upcoming batch & WhatsApp CTA" }
+];
 
 const SECTIONS = [
   ...HEADER_TREE.map((s) => ({ id: s.id, title: s.title, desc: SECTION_DESC[s.id] })),
@@ -92,6 +107,8 @@ let previewTimer = null;
 let canvasDevice = "desktop";
 /** Keep current site fonts when applying a color theme */
 let lockFontsOnThemeChange = true;
+/** Expanded section ids in the left tree (for nested blocks) */
+const expandedTreeSections = new Set();
 
 const $ = (sel) => document.querySelector(sel);
 const previewFrame = $("#preview-frame");
@@ -134,13 +151,206 @@ function clearDirty() {
 }
 
 function ensureSectionOrder() {
+  if (!site.sectionHidden || typeof site.sectionHidden !== "object") site.sectionHidden = {};
   if (!Array.isArray(site.sectionOrder) || !site.sectionOrder.length) {
     site.sectionOrder = DEFAULT_SECTION_ORDER.slice();
   }
-  for (const id of DEFAULT_SECTION_ORDER) {
-    if (!site.sectionOrder.includes(id)) site.sectionOrder.push(id);
-  }
   site.sectionOrder = site.sectionOrder.filter((id) => DEFAULT_SECTION_ORDER.includes(id));
+  if (!site.sectionOrder.includes("contact")) site.sectionOrder.push("contact");
+  // Migrate legacy jobs.enabled=false into sectionHidden
+  if (site.jobProfiles?.enabled === false && site.sectionHidden.jobs == null && site.sectionOrder.includes("jobs")) {
+    site.sectionHidden.jobs = true;
+  }
+}
+
+function isSectionVisible(id) {
+  if (site.sectionHidden?.[id] === true) return false;
+  if (id === "ticker") return site.ticker?.enabled !== false;
+  if (id === "course") return site.course?.enabled !== false;
+  if (id === "jobs") return site.jobProfiles?.enabled === true;
+  if (id === "eligibility") return site.eligibility?.enabled !== false;
+  if (id === "batch") return site.nextBatch?.enabled !== false;
+  return true;
+}
+
+function setSectionVisible(id, visible) {
+  if (!site.sectionHidden) site.sectionHidden = {};
+  if (visible) delete site.sectionHidden[id];
+  else site.sectionHidden[id] = true;
+  if (id === "ticker") {
+    site.ticker = site.ticker || {};
+    site.ticker.enabled = visible;
+  }
+  if (id === "course") {
+    site.course = site.course || {};
+    site.course.enabled = visible;
+  }
+  if (id === "jobs") {
+    site.jobProfiles = site.jobProfiles || { title: "", items: [] };
+    site.jobProfiles.enabled = visible;
+  }
+  if (id === "eligibility") {
+    site.eligibility = site.eligibility || {};
+    site.eligibility.enabled = visible;
+  }
+  if (id === "batch") {
+    site.nextBatch = site.nextBatch || {};
+    site.nextBatch.enabled = visible;
+  }
+}
+
+function getSectionBlocks(sectionId) {
+  ensureSiteShapes();
+  if (sectionId === "ticker") {
+    return (site.ticker.items || []).map((text, index) => ({
+      index,
+      label: String(text || "").slice(0, 40) || `Item ${index + 1}`,
+      list: "ticker"
+    }));
+  }
+  if (sectionId === "hero") {
+    return (site.hero.features || []).map((text, index) => ({
+      index,
+      label: String(text || "").slice(0, 40) || `Feature ${index + 1}`,
+      list: "hero"
+    }));
+  }
+  if (sectionId === "partners") {
+    return (site.hiringPartners?.logos || []).map((item, index) => ({
+      index,
+      label: item.alt || `Logo ${index + 1}`,
+      list: "partners"
+    }));
+  }
+  if (sectionId === "alumni") {
+    return (site.alumni.items || []).map((item, index) => ({
+      index,
+      label: item.alt || `Alumni ${index + 1}`,
+      list: "alumni"
+    }));
+  }
+  if (sectionId === "journey") {
+    return (site.journey?.steps || []).map((item, index) => ({
+      index,
+      label: item.title || `Step ${index + 1}`,
+      list: "journey"
+    }));
+  }
+  if (sectionId === "fees") {
+    return (site.feeStructure.steps || []).map((item, index) => ({
+      index,
+      label: item.label || item.title || `Step ${index + 1}`,
+      list: "fees"
+    }));
+  }
+  if (sectionId === "course") {
+    return (site.course.modules || []).map((item, index) => ({
+      index,
+      label: item.title || `Module ${index + 1}`,
+      list: "course"
+    }));
+  }
+  return [];
+}
+
+function reorderBlocks(listKey, from, to) {
+  const getters = {
+    ticker: () => site.ticker.items,
+    hero: () => site.hero.features,
+    partners: () => site.hiringPartners.logos,
+    alumni: () => site.alumni.items,
+    journey: () => site.journey.steps,
+    fees: () => site.feeStructure.steps,
+    course: () => site.course.modules
+  };
+  const list = getters[listKey]?.();
+  if (!Array.isArray(list) || from < 0 || to < 0 || from === to) return;
+  const [moved] = list.splice(from, 1);
+  list.splice(to, 0, moved);
+  if (listKey === "course") {
+    list.forEach((m) => {
+      if (typeof m.itemsText === "string") m.items = linesToArray(m.itemsText);
+    });
+  }
+}
+
+function removeSectionFromPage(id) {
+  if (LOCKED_SECTIONS.has(id) || id === "contact") {
+    showToast("This section is locked and cannot be removed", "error");
+    return;
+  }
+  if (!confirm(`Remove “${SECTION_LABELS[id] || id}” from the page?\n\nYou can add it again later from Add section.`)) return;
+  site.sectionOrder = site.sectionOrder.filter((s) => s !== id);
+  if (activeSection === id) clearSelection();
+  markDirty();
+  renderSectionTree();
+  scheduleLivePreview();
+  showToast("Section removed — click Save when ready");
+}
+
+function addSectionToPage(id) {
+  ensureSectionOrder();
+  if (site.sectionOrder.includes(id)) {
+    setSectionVisible(id, true);
+    selectFromCanvas(id);
+    markDirty();
+    scheduleLivePreview();
+    return;
+  }
+  if (!DEFAULT_SECTION_ORDER.includes(id)) return;
+  const contactIdx = site.sectionOrder.indexOf("contact");
+  if (contactIdx >= 0) site.sectionOrder.splice(contactIdx, 0, id);
+  else site.sectionOrder.push(id);
+  setSectionVisible(id, true);
+  ensureSiteShapes();
+  markDirty();
+  closeSectionCatalog();
+  selectFromCanvas(id);
+  scheduleLivePreview();
+  showToast(`Added ${SECTION_LABELS[id] || id}`);
+}
+
+function openSectionCatalog() {
+  ensureSectionOrder();
+  const modal = $("#section-catalog-modal");
+  const list = $("#section-catalog-list");
+  if (!modal || !list) return;
+  const missing = SECTION_CATALOG.filter((s) => !site.sectionOrder.includes(s.id));
+  const hidden = SECTION_CATALOG.filter((s) => site.sectionOrder.includes(s.id) && !isSectionVisible(s.id));
+  if (!missing.length && !hidden.length) {
+    list.innerHTML = `<p class="card-desc">All available sections are already on the page and visible.</p>`;
+  } else {
+    list.innerHTML = [
+      ...hidden.map((s) => `<button type="button" class="catalog-item" data-add-section="${s.id}" data-catalog-action="show">
+        <strong>${s.title}</strong><span>Currently hidden — click to show</span></button>`),
+      ...missing.map((s) => `<button type="button" class="catalog-item" data-add-section="${s.id}" data-catalog-action="add">
+        <strong>${s.title}</strong><span>${s.desc}</span></button>`)
+    ].join("");
+  }
+  modal.classList.remove("hidden");
+  list.querySelectorAll("[data-add-section]").forEach((btn) => {
+    btn.addEventListener("click", () => addSectionToPage(btn.dataset.addSection));
+  });
+}
+
+function closeSectionCatalog() {
+  $("#section-catalog-modal")?.classList.add("hidden");
+}
+
+function moveSectionInOrder(id, direction) {
+  ensureSectionOrder();
+  const order = site.sectionOrder.filter((s) => s !== "contact");
+  const idx = order.indexOf(id);
+  if (idx < 0) return;
+  const to = idx + direction;
+  if (to < 0 || to >= order.length) return;
+  const [moved] = order.splice(idx, 1);
+  order.splice(to, 0, moved);
+  if (site.sectionOrder.includes("contact")) order.push("contact");
+  site.sectionOrder = order;
+  markDirty();
+  renderSectionTree();
+  scheduleLivePreview();
 }
 
 function editorToCanvasId(editorId) {
@@ -284,8 +494,47 @@ function arrayToLines(arr) {
 
 function treeItemHtml(id, title, opts = {}) {
   const active = activeSection === id ? " active" : "";
-  const grip = opts.draggable ? `<span class="tree-grip" data-drag="${id}">⋮⋮</span>` : `<span class="tree-grip">·</span>`;
-  return `<button type="button" class="tree-item${active}" data-section="${id}">${grip}<span>${title}</span></button>`;
+  const hidden = opts.visible === false ? " tree-item--hidden" : "";
+  const locked = opts.locked ? " tree-item--locked" : "";
+  const grip = opts.draggable
+    ? `<span class="tree-grip" data-drag="${id}" title="Drag to reorder">⋮⋮</span>`
+    : `<span class="tree-grip tree-grip--lock" title="Locked">${opts.locked ? "🔒" : "·"}</span>`;
+  const blocks = getSectionBlocks(id);
+  const canExpand = blocks.length > 0;
+  const expanded = expandedTreeSections.has(id);
+  const chevron = canExpand
+    ? `<button type="button" class="tree-chevron${expanded ? " open" : ""}" data-expand="${id}" title="${expanded ? "Collapse" : "Expand"}">${expanded ? "▾" : "▸"}</button>`
+    : `<span class="tree-chevron-spacer"></span>`;
+  const eye = opts.hideable !== false
+    ? `<button type="button" class="tree-eye" data-eye="${id}" title="${opts.visible === false ? "Show section" : "Hide section"}">${opts.visible === false ? "👁‍🗨" : "👁"}</button>`
+    : "";
+  return `<div class="tree-row">
+    <button type="button" class="tree-item${active}${hidden}${locked}" data-section="${id}">
+      ${grip}${chevron}<span class="tree-item-label">${escapeHtml(title)}</span>${eye}
+    </button>
+  </div>`;
+}
+
+function treeBlocksHtml(sectionId) {
+  const blocks = getSectionBlocks(sectionId);
+  if (!blocks.length || !expandedTreeSections.has(sectionId)) return "";
+  return `<div class="tree-blocks" data-parent="${sectionId}">
+    ${blocks.map((b) => `<button type="button" class="tree-block" draggable="true" data-block-parent="${sectionId}" data-block-list="${b.list}" data-block-index="${b.index}">
+      <span class="tree-grip">⋮⋮</span><span>${escapeHtml(b.label)}</span>
+    </button>`).join("")}
+  </div>`;
+}
+
+function openSectionFromTree(id) {
+  activeSection = id;
+  selectedCanvasSection = editorToCanvasId(id) || (id === "navigation" ? "header" : id);
+  renderSectionTree();
+  renderEditor();
+  highlightSectionInPreview(selectedCanvasSection);
+  if (selectedCanvasSection && previewFrame?.contentWindow) {
+    previewFrame.contentWindow.postMessage({ type: "nexus-scroll", section: selectedCanvasSection }, "*");
+  }
+  $("#inspector-back")?.classList.remove("hidden");
 }
 
 function renderSectionTree() {
@@ -293,51 +542,118 @@ function renderSectionTree() {
   const tree = $("#section-tree");
   if (!tree) return;
 
-  const templateItems = site.sectionOrder
-    .filter((id) => id !== "contact")
-    .map((id) => treeItemHtml(id, SECTION_LABELS[id] || id, { draggable: true }))
-    .join("");
+  const templateIds = site.sectionOrder.filter((id) => id !== "contact");
+  const templateHtml = templateIds.map((id) => {
+    return treeItemHtml(id, SECTION_LABELS[id] || id, {
+      draggable: true,
+      visible: isSectionVisible(id),
+      hideable: true
+    }) + treeBlocksHtml(id);
+  }).join("");
+
+  const headerHtml = HEADER_TREE.map((s) => {
+    const visible = s.id === "ticker" ? isSectionVisible("ticker") : true;
+    return treeItemHtml(s.id, s.title, {
+      locked: true,
+      visible,
+      hideable: s.id === "ticker"
+    }) + (s.id === "ticker" ? treeBlocksHtml("ticker") : "");
+  }).join("");
 
   tree.innerHTML = `
     <div class="tree-group-label">Header</div>
-    ${HEADER_TREE.map((s) => treeItemHtml(s.id, s.title)).join("")}
+    ${headerHtml}
     <div class="tree-group-label">Template</div>
-    ${templateItems}
+    ${templateHtml || `<p class="tree-empty">No sections — click Add section</p>`}
     <div class="tree-group-label">Footer</div>
-    ${FOOTER_TREE.map((s) => treeItemHtml(s.id, s.title)).join("")}
+    ${FOOTER_TREE.map((s) => treeItemHtml(s.id, s.title, { locked: true, hideable: false })).join("")}
   `;
 
   tree.querySelectorAll(".tree-item").forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      if (e.target.closest("[data-drag]")) return;
-      const id = btn.dataset.section;
-      activeSection = id;
-      selectedCanvasSection = editorToCanvasId(id) || (id === "navigation" ? "header" : id);
-      renderSectionTree();
-      renderEditor();
-      highlightSectionInPreview(selectedCanvasSection);
-      if (selectedCanvasSection && previewFrame?.contentWindow) {
-        previewFrame.contentWindow.postMessage({ type: "nexus-scroll", section: selectedCanvasSection }, "*");
-      }
-      $("#inspector-back")?.classList.remove("hidden");
+      if (e.target.closest("[data-drag], [data-eye], [data-expand]")) return;
+      openSectionFromTree(btn.dataset.section);
     });
   });
 
-  // Drag reorder template sections in the tree
+  tree.querySelectorAll("[data-expand]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.expand;
+      if (expandedTreeSections.has(id)) expandedTreeSections.delete(id);
+      else expandedTreeSections.add(id);
+      renderSectionTree();
+    });
+  });
+
+  tree.querySelectorAll("[data-eye]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.eye;
+      const next = !isSectionVisible(id);
+      setSectionVisible(id, next);
+      markDirty();
+      renderSectionTree();
+      scheduleLivePreview();
+      showToast(next ? "Section visible" : "Section hidden on live site");
+    });
+  });
+
+  tree.querySelectorAll(".tree-block").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      expandedTreeSections.add(btn.dataset.blockParent);
+      openSectionFromTree(btn.dataset.blockParent);
+    });
+    btn.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("application/x-nexus-block", JSON.stringify({
+        list: btn.dataset.blockList,
+        index: Number(btn.dataset.blockIndex),
+        parent: btn.dataset.blockParent
+      }));
+      e.dataTransfer.effectAllowed = "move";
+      btn.classList.add("dragging");
+    });
+    btn.addEventListener("dragend", () => btn.classList.remove("dragging"));
+    btn.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      btn.classList.add("drag-over");
+    });
+    btn.addEventListener("dragleave", () => btn.classList.remove("drag-over"));
+    btn.addEventListener("drop", (e) => {
+      e.preventDefault();
+      btn.classList.remove("drag-over");
+      let payload;
+      try {
+        payload = JSON.parse(e.dataTransfer.getData("application/x-nexus-block") || "");
+      } catch {
+        return;
+      }
+      if (!payload || payload.parent !== btn.dataset.blockParent) return;
+      const to = Number(btn.dataset.blockIndex);
+      reorderBlocks(payload.list, payload.index, to);
+      markDirty();
+      renderSectionTree();
+      if (activeSection === payload.parent) renderEditor();
+      scheduleLivePreview();
+    });
+  });
+
   let dragId = null;
   tree.querySelectorAll("[data-drag]").forEach((grip) => {
     const row = grip.closest(".tree-item");
     row.draggable = true;
     row.addEventListener("dragstart", (e) => {
+      if (e.dataTransfer.types.includes("application/x-nexus-block")) return;
       dragId = grip.dataset.drag;
       e.dataTransfer.setData("text/plain", dragId);
+      e.dataTransfer.setData("application/x-nexus-section", dragId);
     });
     row.addEventListener("dragend", () => {
       dragId = null;
       tree.querySelectorAll(".drag-over").forEach((n) => n.classList.remove("drag-over"));
     });
     row.addEventListener("dragover", (e) => {
-      if (!dragId) return;
+      if (!dragId && !e.dataTransfer.types.includes("application/x-nexus-section")) return;
       e.preventDefault();
       row.classList.add("drag-over");
     });
@@ -345,7 +661,7 @@ function renderSectionTree() {
     row.addEventListener("drop", (e) => {
       e.preventDefault();
       row.classList.remove("drag-over");
-      const fromId = e.dataTransfer.getData("text/plain") || dragId;
+      const fromId = e.dataTransfer.getData("application/x-nexus-section") || e.dataTransfer.getData("text/plain") || dragId;
       const toId = grip.dataset.drag || row.dataset.section;
       if (!fromId || !toId || fromId === toId) return;
       if (!DEFAULT_SECTION_ORDER.includes(fromId) || fromId === "contact") return;
@@ -356,7 +672,7 @@ function renderSectionTree() {
       if (from < 0 || to < 0) return;
       order.splice(from, 1);
       order.splice(to, 0, fromId);
-      if (!order.includes("contact") && site.sectionOrder.includes("contact")) order.push("contact");
+      if (site.sectionOrder.includes("contact")) order.push("contact");
       site.sectionOrder = order;
       markDirty();
       renderSectionTree();
@@ -577,6 +893,7 @@ function bindField(id, onChange) {
 
 function ensureSiteShapes() {
   if (!site.ticker) site.ticker = { enabled: true, items: [], speed: 75 };
+  if (!site.ticker.items) site.ticker.items = [];
   if (!site.alumni) site.alumni = { title: "Alumni Spotlight", items: [], autoplaySeconds: 5 };
   if (!site.alumni.items) site.alumni.items = [];
   if (!site.nextBatch) site.nextBatch = { enabled: true };
@@ -584,8 +901,14 @@ function ensureSiteShapes() {
   if (!site.feeStructure) site.feeStructure = { title: "", subtitle: "", totalLabel: "", steps: [] };
   if (!site.feeStructure.steps) site.feeStructure.steps = [];
   if (!site.hero) site.hero = { headline: "", features: [] };
+  if (!Array.isArray(site.hero.features)) site.hero.features = [];
+  if (!site.hiringPartners) site.hiringPartners = { title: "Our Hiring Partners", logos: [] };
+  if (!site.hiringPartners.logos) site.hiringPartners.logos = [];
+  if (!site.journey) site.journey = { title: "", steps: [] };
+  if (!site.journey.steps) site.journey.steps = [];
   if (!site.course) site.course = { enabled: true, tags: [], roles: [], modules: [] };
   if (!site.course.modules) site.course.modules = [];
+  if (!site.sectionHidden) site.sectionHidden = {};
 }
 
 function renderLayersList(container) {
@@ -1043,7 +1366,7 @@ function renderEditor() {
   }
 
   const bindings = {
-    "ticker-enabled": (v) => { site.ticker.enabled = v; },
+    "ticker-enabled": (v) => { setSectionVisible("ticker", v); renderSectionTree(); },
     "ticker-items": (v) => { site.ticker.items = linesToArray(v); },
     "ticker-upper": (v) => { site.ticker.uppercase = v; },
     "ticker-bold": (v) => { site.ticker.bold = v; },
@@ -1062,10 +1385,10 @@ function renderEditor() {
     "hero-features": (v) => { site.hero.features = linesToArray(v); },
     "pg-title": (v) => { site.placementGuarantee.title = v; },
     "pg-subtitle": (v) => { site.placementGuarantee.subtitle = v; },
-    "jobs-enabled": (v) => { site.jobProfiles.enabled = v; },
+    "jobs-enabled": (v) => { setSectionVisible("jobs", v); renderSectionTree(); },
     "jobs-title": (v) => { site.jobProfiles.title = v; },
     "jobs-items": (v) => { site.jobProfiles.items = linesToArray(v); },
-    "course-enabled": (v) => { site.course.enabled = v; },
+    "course-enabled": (v) => { setSectionVisible("course", v); renderSectionTree(); },
     "course-badge": (v) => { site.course.badge = v; },
     "course-title": (v) => { site.course.title = v; },
     "course-subtitle": (v) => { site.course.subtitle = v; },
@@ -1074,10 +1397,10 @@ function renderEditor() {
     "course-roles-title": (v) => { site.course.rolesTitle = v; },
     "course-roles": (v) => { site.course.roles = linesToArray(v); },
     "course-syllabus-title": (v) => { site.course.syllabusTitle = v; },
-    "elig-enabled": (v) => { site.eligibility.enabled = v; },
+    "elig-enabled": (v) => { setSectionVisible("eligibility", v); renderSectionTree(); },
     "elig-title": (v) => { site.eligibility.title = v; },
     "elig-items": (v) => { site.eligibility.items = linesToArray(v); },
-    "batch-enabled": (v) => { site.nextBatch.enabled = v; },
+    "batch-enabled": (v) => { setSectionVisible("batch", v); renderSectionTree(); },
     "batch-badge": (v) => { site.nextBatch.badge = v; },
     "batch-title": (v) => { site.nextBatch.title = v; },
     "batch-eyebrow": (v) => { site.nextBatch.cardEyebrow = v; },
@@ -1097,6 +1420,29 @@ function renderEditor() {
 
   Object.entries(bindings).forEach(([id, fn]) => bindField(id, fn));
   wireGotoAndLocalize();
+
+  const structureId = activeSection === "navigation" ? "header" : activeSection;
+  const canStructure = REMOVABLE_SECTIONS.includes(structureId) || structureId === "ticker";
+  if (canStructure && !THEME_SECTIONS.includes(activeSection) && activeSection !== "none") {
+    const structure = document.createElement("div");
+    structure.className = "card card--danger-zone";
+    const visible = isSectionVisible(structureId);
+    structure.innerHTML = `<h3>Section</h3>
+      <p class="card-desc">Hide keeps it in the tree. Remove takes it off the page (you can add it again later).</p>
+      <div class="structure-actions">
+        <button type="button" class="btn btn-secondary" id="structure-hide">${visible ? "Hide section" : "Show section"}</button>
+        ${REMOVABLE_SECTIONS.includes(structureId) ? `<button type="button" class="btn btn-danger" id="structure-remove">Remove section</button>` : ""}
+      </div>`;
+    ed().appendChild(structure);
+    $("#structure-hide")?.addEventListener("click", () => {
+      setSectionVisible(structureId, !isSectionVisible(structureId));
+      markDirty();
+      renderSectionTree();
+      renderEditor();
+      scheduleLivePreview();
+    });
+    $("#structure-remove")?.addEventListener("click", () => removeSectionFromPage(structureId));
+  }
 }
 
 function openThemeSection(id) {
@@ -1195,15 +1541,47 @@ function setCanvasDevice(device, widthPx) {
 
 function applySectionOrderFromCanvas(order) {
   if (!Array.isArray(order) || !order.length) return;
-  const cleaned = order.filter((id) => DEFAULT_SECTION_ORDER.includes(id));
-  for (const id of DEFAULT_SECTION_ORDER) {
-    if (!cleaned.includes(id)) cleaned.push(id);
-  }
-  site.sectionOrder = cleaned;
+  const cleaned = order.filter((id) => DEFAULT_SECTION_ORDER.includes(id) && id !== "contact");
+  // Preserve sections that were on the page but not in the canvas order payload
+  const extras = site.sectionOrder.filter((id) => id !== "contact" && !cleaned.includes(id));
+  const next = [...cleaned, ...extras];
+  next.push("contact");
+  site.sectionOrder = next.filter((id, i, arr) => arr.indexOf(id) === i);
   markDirty();
-  showToast("Section moved — click Save & Publish when ready");
+  showToast("Section moved — click Save when ready");
   scheduleLivePreview();
   renderSectionTree();
+}
+
+function handleToolbarAction(action, sectionId) {
+  if (!sectionId) return;
+  const editorId = CANVAS_TO_EDITOR[sectionId] || sectionId;
+  if (action === "edit") {
+    selectFromCanvas(sectionId);
+    return;
+  }
+  if (action === "hide") {
+    setSectionVisible(sectionId, !isSectionVisible(sectionId));
+    markDirty();
+    renderSectionTree();
+    scheduleLivePreview();
+    return;
+  }
+  if (action === "remove") {
+    removeSectionFromPage(sectionId === "header" ? "navigation" : sectionId);
+    return;
+  }
+  if (action === "up") {
+    moveSectionInOrder(sectionId, -1);
+    return;
+  }
+  if (action === "down") {
+    moveSectionInOrder(sectionId, 1);
+    return;
+  }
+  if (action === "edit" || editorId) {
+    selectFromCanvas(sectionId);
+  }
 }
 
 function initPanelSplitter() {
@@ -1360,9 +1738,18 @@ window.addEventListener("message", (e) => {
   if (data.type === "nexus-reorder" && Array.isArray(data.order)) {
     applySectionOrderFromCanvas(data.order);
   }
+  if (data.type === "nexus-toolbar" && data.action) {
+    handleToolbarAction(data.action, data.section);
+  }
   if (data.type === "nexus-ready") {
     highlightSectionInPreview();
   }
+});
+
+$("#add-section-btn")?.addEventListener("click", openSectionCatalog);
+$("#section-catalog-close")?.addEventListener("click", closeSectionCatalog);
+$("#section-catalog-modal")?.addEventListener("click", (e) => {
+  if (e.target?.id === "section-catalog-modal") closeSectionCatalog();
 });
 
 window.addEventListener("beforeunload", (e) => {

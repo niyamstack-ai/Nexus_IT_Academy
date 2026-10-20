@@ -84,3 +84,66 @@
 body.nexus-builder a {
   pointer-events: none;
 }
+
+[data-nexus-section][data-nexus-hidden="true"] {
+  outline-color: rgba(107, 114, 128, 0.7);
+  outline-style: dashed;
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
+
+.nexus-hidden-badge {
+  position: absolute;
+  top: 8px;
+  left: 120px;
+  z-index: 20;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #4b5563;
+  color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.nexus-float-toolbar {
+  position: absolute;
+  z-index: 50;
+  display: none;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #111827;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.nexus-float-toolbar.is-visible {
+  display: flex;
+}
+
+.nexus-float-toolbar button {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nexus-float-toolbar button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nexus-float-toolbar button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.nexus-float-toolbar .nexus-tb-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.85);
+}

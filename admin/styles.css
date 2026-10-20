@@ -171,6 +171,13 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+.tree-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .tree-header h2 {
   margin: 0;
   font-size: 0.95rem;
@@ -197,13 +204,22 @@ body {
   color: var(--muted);
 }
 
+.tree-empty {
+  margin: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.tree-row {
+  margin-bottom: 2px;
+}
+
 .tree-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  padding: 8px 10px;
-  margin-bottom: 2px;
+  padding: 8px 8px;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -212,6 +228,14 @@ body {
   font-size: 0.88rem;
   text-align: left;
   cursor: pointer;
+}
+
+.tree-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tree-item:hover {
@@ -223,14 +247,157 @@ body {
   color: #fff;
 }
 
+.tree-item--hidden {
+  opacity: 0.55;
+}
+
+.tree-item--hidden .tree-item-label {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
 .tree-item .tree-grip {
   color: var(--muted);
   font-size: 0.75rem;
   cursor: grab;
+  flex: 0 0 auto;
+}
+
+.tree-grip--lock {
+  cursor: default;
+  font-size: 0.65rem;
+}
+
+.tree-chevron,
+.tree-eye {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.tree-chevron:hover,
+.tree-eye:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tree-chevron-spacer {
+  width: 14px;
+  flex: 0 0 auto;
 }
 
 .tree-item.drag-over {
   outline: 1px dashed var(--primary);
+}
+
+.tree-blocks {
+  margin: 0 0 6px 22px;
+  padding-left: 6px;
+  border-left: 2px solid var(--border);
+}
+
+.tree-block {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 1px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-block:hover,
+.tree-block.drag-over {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tree-block.dragging {
+  opacity: 0.5;
+}
+
+.tree-block .tree-grip {
+  font-size: 0.65rem;
+  cursor: grab;
+}
+
+.catalog-modal-card {
+  max-width: 420px;
+  width: min(420px, 92vw);
+}
+
+.catalog-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.catalog-modal-head h3 {
+  margin: 0;
+}
+
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+.catalog-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalog-item:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface-2));
+}
+
+.catalog-item strong {
+  font-size: 0.92rem;
+}
+
+.catalog-item span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.structure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card--danger-zone {
+  border-color: color-mix(in srgb, #dc2626 35%, var(--border));
 }
 
 .inspector-right {

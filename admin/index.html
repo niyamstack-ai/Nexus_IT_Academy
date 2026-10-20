@@ -65,8 +65,13 @@
     <div class="shopify-body" id="workspace-body" style="--tree-width: 280px; --inspector-width: 340px">
       <aside class="section-tree-panel" id="section-tree-panel">
         <div class="tree-header">
-          <h2>Sections</h2>
-          <p>Select a section to edit</p>
+          <div class="tree-header-row">
+            <div>
+              <h2>Sections</h2>
+              <p>Select a section to edit</p>
+            </div>
+            <button type="button" id="add-section-btn" class="btn btn-secondary btn-sm" title="Add section">+ Add</button>
+          </div>
         </div>
         <nav class="section-tree" id="section-tree"></nav>
       </aside>
@@ -94,6 +99,17 @@
         </div>
         <main id="editor-panel" class="editor-panel"></main>
       </aside>
+    </div>
+  </div>
+
+  <div id="section-catalog-modal" class="crop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="section-catalog-title">
+    <div class="crop-modal-card catalog-modal-card">
+      <div class="catalog-modal-head">
+        <h3 id="section-catalog-title">Add section</h3>
+        <button type="button" id="section-catalog-close" class="btn btn-ghost btn-sm" title="Close">✕</button>
+      </div>
+      <p class="card-desc">Choose a section to add or re-show on the page.</p>
+      <div id="section-catalog-list" class="catalog-list"></div>
     </div>
   </div>
 

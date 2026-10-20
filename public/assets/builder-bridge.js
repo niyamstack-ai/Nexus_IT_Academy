@@ -16,27 +16,16 @@
   };
 
   const REORDERABLE = new Set([
-    "hero", "partners", "alumni", "journey", "guarantee", "course", "jobs", "fees", "eligibility", "batch", "contact"
+    "hero", "partners", "alumni", "journey", "guarantee", "course", "jobs", "fees", "eligibility", "batch"
   ]);
+  const LOCKED = new Set(["ticker", "header", "contact"]);
 
   let selected = null;
   let dragId = null;
+  let toolbar = null;
 
   function nearestSection(el) {
     return el && el.closest ? el.closest("[data-nexus-section]") : null;
-  }
-
-  function setSelected(id) {
-    document.querySelectorAll("[data-nexus-section].nexus-selected").forEach((n) => {
-      n.classList.remove("nexus-selected");
-    });
-    selected = id;
-    if (!id) return;
-    const node = document.querySelector(`[data-nexus-section="${id}"]`);
-    if (node) {
-      node.classList.add("nexus-selected");
-      node.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
   }
 
   function post(msg) {
@@ -49,6 +38,71 @@
       .filter((id) => REORDERABLE.has(id));
   }
 
+  function ensureToolbar() {
+    if (toolbar) return toolbar;
+    toolbar = document.createElement("div");
+    toolbar.className = "nexus-float-toolbar";
+    toolbar.innerHTML = `
+      <button type="button" data-tb="edit" title="Edit">Edit</button>
+      <button type="button" data-tb="up" title="Move up">↑</button>
+      <button type="button" data-tb="down" title="Move down">↓</button>
+      <button type="button" data-tb="hide" title="Hide / show">Hide</button>
+      <button type="button" data-tb="remove" title="Remove" class="nexus-tb-danger">Remove</button>
+    `;
+    toolbar.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-tb]");
+      if (!btn || !selected) return;
+      e.preventDefault();
+      e.stopPropagation();
+      post({ type: "nexus-toolbar", action: btn.dataset.tb, section: selected });
+    });
+    document.body.appendChild(toolbar);
+    return toolbar;
+  }
+
+  function positionToolbar(node) {
+    const bar = ensureToolbar();
+    if (!node || !selected) {
+      bar.classList.remove("is-visible");
+      return;
+    }
+    const rect = node.getBoundingClientRect();
+    const top = Math.max(8, rect.top + window.scrollY - 40);
+    const left = Math.min(
+      window.scrollX + rect.left + 8,
+      window.scrollX + document.documentElement.clientWidth - 320
+    );
+    bar.style.top = `${top}px`;
+    bar.style.left = `${left}px`;
+    bar.classList.add("is-visible");
+
+    const locked = LOCKED.has(selected);
+    bar.querySelector('[data-tb="up"]').disabled = locked || !REORDERABLE.has(selected);
+    bar.querySelector('[data-tb="down"]').disabled = locked || !REORDERABLE.has(selected);
+    bar.querySelector('[data-tb="remove"]').disabled = locked;
+    bar.querySelector('[data-tb="hide"]').textContent =
+      node.getAttribute("data-nexus-hidden") === "true" ? "Show" : "Hide";
+  }
+
+  function setSelected(id) {
+    document.querySelectorAll("[data-nexus-section].nexus-selected").forEach((n) => {
+      n.classList.remove("nexus-selected");
+    });
+    selected = id;
+    if (!id) {
+      positionToolbar(null);
+      return;
+    }
+    const node = document.querySelector(`[data-nexus-section="${id}"]`);
+    if (node) {
+      node.classList.add("nexus-selected");
+      node.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      positionToolbar(node);
+    } else {
+      positionToolbar(null);
+    }
+  }
+
   function decorateSections() {
     document.querySelectorAll("[data-nexus-section]").forEach((node) => {
       const id = node.getAttribute("data-nexus-section");
@@ -57,6 +111,12 @@
         chip.className = "nexus-section-label";
         chip.textContent = LABEL[id] || id;
         node.appendChild(chip);
+      }
+      if (node.getAttribute("data-nexus-hidden") === "true" && !node.querySelector(".nexus-hidden-badge")) {
+        const badge = document.createElement("span");
+        badge.className = "nexus-hidden-badge";
+        badge.textContent = "Hidden";
+        node.appendChild(badge);
       }
       if (REORDERABLE.has(id) && !node.querySelector(".nexus-drag-handle")) {
         const handle = document.createElement("button");
@@ -108,7 +168,7 @@
   document.addEventListener(
     "click",
     (e) => {
-      if (e.target.closest && e.target.closest(".nexus-drag-handle")) return;
+      if (e.target.closest && e.target.closest(".nexus-drag-handle, .nexus-float-toolbar")) return;
       const a = e.target.closest && e.target.closest("a");
       if (a) {
         e.preventDefault();
@@ -125,6 +185,12 @@
     true
   );
 
+  window.addEventListener("scroll", () => {
+    if (!selected) return;
+    const node = document.querySelector(`[data-nexus-section="${selected}"]`);
+    positionToolbar(node);
+  }, true);
+
   window.addEventListener("message", (e) => {
     const data = e.data || {};
     if (data.type === "nexus-highlight") setSelected(data.section || null);
@@ -135,5 +201,6 @@
   });
 
   decorateSections();
+  ensureToolbar();
   post({ type: "nexus-ready" });
 })();
