@@ -74,6 +74,213 @@ body {
   grid-template-columns: 168px 1fr;
 }
 
+/* Shopify-style shell: top bar + tree | canvas | inspector */
+.shopify-shell {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.shopify-topbar {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  gap: 12px;
+}
+
+.shopify-topbar .topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.brand-mark {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.topbar-page {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.theme-menu-wrap {
+  position: relative;
+}
+
+.theme-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.theme-menu a,
+.theme-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.theme-menu a:hover,
+.theme-menu button:hover {
+  background: var(--surface-2);
+}
+
+.shopify-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--tree-width, 280px) 8px minmax(0, 1fr) 8px var(--inspector-width, 340px);
+}
+
+.section-tree-panel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tree-header {
+  padding: 14px 14px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tree-header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.tree-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.section-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 8px 16px;
+}
+
+.tree-group-label {
+  padding: 10px 8px 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 2px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-item:hover {
+  background: var(--surface-2);
+}
+
+.tree-item.active {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: #fff;
+}
+
+.tree-item .tree-grip {
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: grab;
+}
+
+.tree-item.drag-over {
+  outline: 1px dashed var(--primary);
+}
+
+.inspector-right {
+  border-left: 1px solid var(--border);
+  border-right: none;
+  background: var(--surface);
+  max-height: none;
+  height: 100%;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.inspector-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.inspector-titles h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.inspector-empty {
+  padding: 28px 18px;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.inspector-empty strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.shopify-body .canvas-panel {
+  border: none;
+}
+
+.shopify-body .canvas-hint-bar {
+  text-align: center;
+}
+
 .sidebar {
   background: var(--surface);
   border-right: 1px solid var(--border);
@@ -217,6 +424,11 @@ body {
 
 .builder-workspace {
   grid-template-columns: var(--inspector-width, 320px) 8px minmax(0, 1fr);
+}
+
+.shopify-body.builder-workspace,
+.shopify-body {
+  grid-template-columns: var(--tree-width, 280px) 8px minmax(0, 1fr) 8px var(--inspector-width, 340px);
 }
 
 .inspector-panel {
@@ -825,10 +1037,15 @@ input:focus, textarea:focus, select:focus {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(220px, 38vh) 0 minmax(0, 1fr);
   }
+  .shopify-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(240px, 45vh) auto minmax(200px, 40vh);
+  }
   .panel-splitter { display: none; }
-  .inspector-panel { max-height: 38vh; border-right: none; border-bottom: 1px solid var(--border); }
-  .canvas-panel { min-height: 50vh; }
-  #preview-frame { min-height: 48vh; }
+  .section-tree-panel { max-height: 28vh; }
+  .inspector-panel { max-height: 40vh; border-right: none; border-top: 1px solid var(--border); }
+  .canvas-panel { min-height: 45vh; }
+  #preview-frame { min-height: 42vh; }
   .field-grid-2 { grid-template-columns: 1fr; }
   .device-toggles { order: 3; width: 100%; }
   .canvas-hint-bar { font-size: 0.72rem; }

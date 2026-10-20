@@ -3,11 +3,10 @@ const DEFAULT_SECTION_ORDER = [
 ];
 
 const SECTION_LABELS = {
-  canvas: "Page canvas",
-  quick: "Quick Updates",
-  ticker: "Announcement Bar",
-  header: "Header / Nav",
-  navigation: "Register & Login",
+  none: "Settings",
+  ticker: "Horizontal Ticker",
+  navigation: "Header",
+  header: "Header",
   hero: "Hero",
   partners: "Hiring Partners",
   alumni: "Alumni Spotlight",
@@ -18,10 +17,30 @@ const SECTION_LABELS = {
   fees: "Fee Structure",
   eligibility: "Eligibility",
   batch: "Next Batch",
-  contact: "Contact & Footer",
+  contact: "Footer / Contact",
   themes: "Themes & Design",
   domain: "Domain & Go Live",
   settings: "Site Settings"
+};
+
+const SECTION_DESC = {
+  none: "Select a section on the preview or from the list",
+  ticker: "Scrolling announcement bar",
+  navigation: "Logo, Register & Login links",
+  hero: "Main headline and feature bullets",
+  partners: "Company logo carousel",
+  alumni: "Student placement photos",
+  journey: "Your Journey at Nexus IT",
+  guarantee: "Placement guarantee text",
+  course: "Syllabus, roles, skill tags",
+  jobs: "Optional job profile cards",
+  fees: "Pay-after-placement pricing",
+  eligibility: "Who can apply",
+  batch: "Upcoming batch & Join Community",
+  contact: "Address, phone, email, footer logos",
+  themes: "Colors and fonts",
+  domain: "Connect custom domain",
+  settings: "Site name, logo, SEO"
 };
 
 /** Canvas click ids → admin editor section ids */
@@ -41,38 +60,33 @@ const CANVAS_TO_EDITOR = {
   contact: "contact"
 };
 
-/** Keep sidebar simple — edit happens by clicking the website */
-const DAILY_SECTIONS = [
-  { id: "canvas", icon: "🖼", title: "Edit website", desc: "Click any section on the page · drag ⋮⋮ to reorder" },
-  { id: "batch", icon: "📅", title: "Next Batch", desc: "Date, time & Join Community" },
-  { id: "fees", icon: "💰", title: "Fees", desc: "Pay-after-placement pricing" },
-  { id: "alumni", icon: "🎓", title: "Alumni", desc: "Student placement photos" },
-  { id: "hero", icon: "🎯", title: "Hero", desc: "Main headline and bullets" }
+const HEADER_TREE = [
+  { id: "ticker", title: "Horizontal Ticker" },
+  { id: "navigation", title: "Header", canvas: "header" }
 ];
 
-const ADVANCED_SECTIONS = [
-  { id: "ticker", icon: "📢", title: "Announcement Bar", desc: "Scrolling highlights" },
-  { id: "course", icon: "📘", title: "Course / Syllabus", desc: "Modules, roles, skill tags" },
-  { id: "navigation", icon: "🔗", title: "Register & Login", desc: "Button labels and external links" },
-  { id: "partners", icon: "🏢", title: "Hiring Partners", desc: "Company logo carousel" },
-  { id: "journey", icon: "🛤️", title: "Journey Steps", desc: "Your Journey at Nexus IT" },
-  { id: "guarantee", icon: "✅", title: "Placement Guarantee", desc: "90 days guarantee section" },
-  { id: "jobs", icon: "💼", title: "Job Profiles", desc: "Optional multi-profile cards" },
-  { id: "eligibility", icon: "📋", title: "Eligibility", desc: "Who can apply" },
-  { id: "contact", icon: "📞", title: "Contact & Footer", desc: "Address, phone, email, logos" },
-  { id: "themes", icon: "🎨", title: "Themes & Design", desc: "Colors, fonts, coaching themes" },
-  { id: "domain", icon: "🌐", title: "Domain & Go Live", desc: "Connect custom domain to VPS" },
-  { id: "settings", icon: "⚙️", title: "Site Settings", desc: "Site name, logo, SEO meta" }
+const FOOTER_TREE = [
+  { id: "contact", title: "Footer / Contact" }
 ];
 
-const SECTIONS = [...DAILY_SECTIONS, ...ADVANCED_SECTIONS];
+const THEME_SECTIONS = ["themes", "domain", "settings"];
+
+const SECTIONS = [
+  ...HEADER_TREE.map((s) => ({ id: s.id, title: s.title, desc: SECTION_DESC[s.id] })),
+  ...DEFAULT_SECTION_ORDER.map((id) => ({
+    id: id === "contact" ? null : id,
+    title: SECTION_LABELS[id],
+    desc: SECTION_DESC[id]
+  })).filter((s) => s.id),
+  ...FOOTER_TREE.map((s) => ({ id: s.id, title: s.title, desc: SECTION_DESC[s.id] })),
+  ...THEME_SECTIONS.map((id) => ({ id, title: SECTION_LABELS[id], desc: SECTION_DESC[id] }))
+];
 
 let site = null;
 let themes = { presets: [], fonts: [] };
-let activeSection = "canvas";
+let activeSection = "none";
 let selectedCanvasSection = null;
 let isDirty = false;
-let advancedOpen = false;
 let previewVisible = true;
 let previewTimer = null;
 let canvasDevice = "desktop";
@@ -80,8 +94,10 @@ let canvasDevice = "desktop";
 let lockFontsOnThemeChange = true;
 
 const $ = (sel) => document.querySelector(sel);
-const editor = $("#editor-panel");
 const previewFrame = $("#preview-frame");
+function ed() {
+  return $("#editor-panel");
+}
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -157,10 +173,19 @@ function selectFromCanvas(canvasId) {
   const editorId = CANVAS_TO_EDITOR[canvasId] || canvasId;
   selectedCanvasSection = canvasId;
   activeSection = editorId;
-  if (ADVANCED_SECTIONS.some((s) => s.id === editorId)) advancedOpen = true;
-  renderNav();
+  renderSectionTree();
   renderEditor();
   highlightSectionInPreview(canvasId);
+  $("#inspector-back")?.classList.remove("hidden");
+}
+
+function clearSelection() {
+  activeSection = "none";
+  selectedCanvasSection = null;
+  renderSectionTree();
+  renderEditor();
+  highlightSectionInPreview(null);
+  $("#inspector-back")?.classList.add("hidden");
 }
 
 async function refreshDomainGuide() {
@@ -257,54 +282,92 @@ function arrayToLines(arr) {
   return (arr || []).join("\n");
 }
 
-function navButton(s) {
-  return `<button type="button" class="nav-item${s.id === activeSection ? " active" : ""}" data-section="${s.id}">
-      <span>${s.icon}</span><span>${s.title}</span>
-    </button>`;
+function treeItemHtml(id, title, opts = {}) {
+  const active = activeSection === id ? " active" : "";
+  const grip = opts.draggable ? `<span class="tree-grip" data-drag="${id}">⋮⋮</span>` : `<span class="tree-grip">·</span>`;
+  return `<button type="button" class="tree-item${active}" data-section="${id}">${grip}<span>${title}</span></button>`;
 }
 
-function renderNav() {
-  const dailyHtml = DAILY_SECTIONS.map(navButton).join("");
-  const advancedHtml = ADVANCED_SECTIONS.map(navButton).join("");
-  $("#sidebar-nav").innerHTML = `
-    <div class="nav-group-label">Start here</div>
-    ${dailyHtml}
-    <button type="button" class="nav-toggle" id="advanced-toggle" aria-expanded="${advancedOpen}">
-      <span>${advancedOpen ? "▾" : "▸"} More (optional)</span>
-    </button>
-    <div class="nav-advanced${advancedOpen ? " open" : ""}" id="nav-advanced">
-      ${advancedHtml}
-    </div>`;
+function renderSectionTree() {
+  ensureSectionOrder();
+  const tree = $("#section-tree");
+  if (!tree) return;
 
-  document.querySelectorAll(".nav-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      activeSection = btn.dataset.section;
-      selectedCanvasSection = editorToCanvasId(activeSection);
-      if (ADVANCED_SECTIONS.some((s) => s.id === activeSection)) advancedOpen = true;
-      renderNav();
+  const templateItems = site.sectionOrder
+    .filter((id) => id !== "contact")
+    .map((id) => treeItemHtml(id, SECTION_LABELS[id] || id, { draggable: true }))
+    .join("");
+
+  tree.innerHTML = `
+    <div class="tree-group-label">Header</div>
+    ${HEADER_TREE.map((s) => treeItemHtml(s.id, s.title)).join("")}
+    <div class="tree-group-label">Template</div>
+    ${templateItems}
+    <div class="tree-group-label">Footer</div>
+    ${FOOTER_TREE.map((s) => treeItemHtml(s.id, s.title)).join("")}
+  `;
+
+  tree.querySelectorAll(".tree-item").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      if (e.target.closest("[data-drag]")) return;
+      const id = btn.dataset.section;
+      activeSection = id;
+      selectedCanvasSection = editorToCanvasId(id) || (id === "navigation" ? "header" : id);
+      renderSectionTree();
       renderEditor();
       highlightSectionInPreview(selectedCanvasSection);
       if (selectedCanvasSection && previewFrame?.contentWindow) {
         previewFrame.contentWindow.postMessage({ type: "nexus-scroll", section: selectedCanvasSection }, "*");
       }
-      closeMobileMenu();
+      $("#inspector-back")?.classList.remove("hidden");
     });
   });
 
-  $("#advanced-toggle")?.addEventListener("click", () => {
-    advancedOpen = !advancedOpen;
-    renderNav();
+  // Drag reorder template sections in the tree
+  let dragId = null;
+  tree.querySelectorAll("[data-drag]").forEach((grip) => {
+    const row = grip.closest(".tree-item");
+    row.draggable = true;
+    row.addEventListener("dragstart", (e) => {
+      dragId = grip.dataset.drag;
+      e.dataTransfer.setData("text/plain", dragId);
+    });
+    row.addEventListener("dragend", () => {
+      dragId = null;
+      tree.querySelectorAll(".drag-over").forEach((n) => n.classList.remove("drag-over"));
+    });
+    row.addEventListener("dragover", (e) => {
+      if (!dragId) return;
+      e.preventDefault();
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      const fromId = e.dataTransfer.getData("text/plain") || dragId;
+      const toId = grip.dataset.drag || row.dataset.section;
+      if (!fromId || !toId || fromId === toId) return;
+      if (!DEFAULT_SECTION_ORDER.includes(fromId) || fromId === "contact") return;
+      if (!DEFAULT_SECTION_ORDER.includes(toId) || toId === "contact") return;
+      const order = site.sectionOrder.filter((id) => id !== "contact");
+      const from = order.indexOf(fromId);
+      const to = order.indexOf(toId);
+      if (from < 0 || to < 0) return;
+      order.splice(from, 1);
+      order.splice(to, 0, fromId);
+      if (!order.includes("contact") && site.sectionOrder.includes("contact")) order.push("contact");
+      site.sectionOrder = order;
+      markDirty();
+      renderSectionTree();
+      scheduleLivePreview();
+      showToast("Section moved — click Save when ready");
+    });
   });
 }
 
-function closeMobileMenu() {
-  $("#sidebar")?.classList.remove("open");
-  $("#sidebar-backdrop")?.classList.add("hidden");
-}
-
-function openMobileMenu() {
-  $("#sidebar")?.classList.add("open");
-  $("#sidebar-backdrop")?.classList.remove("hidden");
+function renderNav() {
+  renderSectionTree();
 }
 
 function listField(label, items, fields, onChange, options = {}) {
@@ -549,41 +612,27 @@ function renderLayersList(container) {
   container.appendChild(list);
 }
 
-function renderCanvasHome() {
-  ensureSiteShapes();
-  ensureSectionOrder();
-  const wrap = document.createElement("div");
-  wrap.innerHTML = `
-    <div class="card builder-hint">
-      <strong>How to edit (simple)</strong><br>
-      1. On the right website: <strong>click</strong> Hero / Fees / Alumni / Batch…<br>
-      2. Fields open here on the left — change text, then <strong>Save &amp; Publish</strong><br>
-      3. On the website: drag the <strong>⋮⋮ Drag</strong> button to move sections up/down<br>
-      4. Drag the pink bar between panels (or preview edge) to resize
-    </div>
-    <div class="card">
-      <h3>Section order</h3>
-      <p class="card-desc">Same as dragging on the page. Ticker + header stay fixed on top.</p>
-      <div id="layers-root"></div>
+function renderEmptyInspector() {
+  ed().innerHTML = `
+    <div class="inspector-empty">
+      <strong>Select a section</strong>
+      Tap any section on the preview, or choose one from the left list.
+      Settings for that section will appear here.
     </div>`;
-  editor.appendChild(wrap);
-  renderLayersList($("#layers-root"));
 }
 
 function renderEditor() {
-  const section = SECTIONS.find((s) => s.id === activeSection) || {
-    title: SECTION_LABELS[activeSection] || activeSection,
-    desc: "Edit this section"
-  };
-  $("#panel-title").textContent = section.title;
-  $("#panel-desc").textContent = section.desc || "Edit selected section";
+  const title = SECTION_LABELS[activeSection] || activeSection;
+  const desc = SECTION_DESC[activeSection] || "Edit this section";
+  $("#panel-title").textContent = title;
+  $("#panel-desc").textContent = desc;
 
-  editor.innerHTML = "";
+  ed().innerHTML = "";
   let html = "";
 
-  if (activeSection === "canvas") {
-    renderCanvasHome();
-    wireGotoAndLocalize();
+  if (!activeSection || activeSection === "none" || activeSection === "canvas") {
+    renderEmptyInspector();
+    $("#inspector-back")?.classList.add("hidden");
     return;
   }
 
@@ -690,7 +739,7 @@ function renderEditor() {
     </div>`;
   }
 
-  if (html) editor.innerHTML = html;
+  if (html) ed().innerHTML = html;
 
   if (activeSection === "settings") {
     $("#wrap-site-logo")?.appendChild(createImageField("Site Logo (upload and crop)", site.logo, "logo", (v) => { site.logo = v; markDirty(); }));
@@ -701,7 +750,7 @@ function renderEditor() {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `<h3>Hiring Partners Logos</h3>${field("Section title", site.hiringPartners?.title, "text", "hp-title")}`;
-    editor.appendChild(card);
+    ed().appendChild(card);
     bindField("hp-title", (v) => { site.hiringPartners.title = v; });
     card.appendChild(listField("Logo", site.hiringPartners.logos, [
       { key: "url", label: "Company logo", type: "image", preset: "partnerLogo" },
@@ -717,7 +766,7 @@ function renderEditor() {
       ${field("Section title", site.alumni?.title || "Alumni Spotlight", "text", "alumni-title")}
       ${field("Carousel speed (seconds)", site.alumni?.autoplaySeconds || 5, "number", "alumni-speed")}
       <p class="card-desc">Upload success story photos. Drag ⋮⋮ to reorder. Use Remove to delete a card.</p>`;
-    editor.appendChild(card);
+    ed().appendChild(card);
     bindField("alumni-title", (v) => { site.alumni.title = v; });
     bindField("alumni-speed", (v) => { site.alumni.autoplaySeconds = parseInt(v, 10) || 5; });
     card.appendChild(listField("Story", site.alumni.items, [
@@ -734,7 +783,7 @@ function renderEditor() {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `<h3>Syllabus Modules</h3>`;
-    editor.appendChild(card);
+    ed().appendChild(card);
     card.appendChild(listField("Module", site.course.modules, [
       { key: "title", label: "Module title" },
       { key: "itemsText", label: "Bullets (one per line)", type: "textarea" }
@@ -749,7 +798,7 @@ function renderEditor() {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `<h3>Journey Steps</h3>${field("Section title", site.journey?.title, "text", "journey-title")}`;
-    editor.appendChild(card);
+    ed().appendChild(card);
     bindField("journey-title", (v) => { site.journey.title = v; });
     card.appendChild(listField("Step", site.journey.steps, [
       { key: "title", label: "Step title" },
@@ -766,7 +815,7 @@ function renderEditor() {
       ${field("Section title", site.feeStructure?.title, "text", "fee-title")}
       ${field("Subtitle", site.feeStructure?.subtitle, "text", "fee-subtitle")}
       ${field("Total fees label", site.feeStructure?.totalLabel, "text", "fee-total")}`;
-    editor.appendChild(card);
+    ed().appendChild(card);
     bindField("fee-title", (v) => { site.feeStructure.title = v; });
     bindField("fee-subtitle", (v) => { site.feeStructure.subtitle = v; });
     bindField("fee-total", (v) => { site.feeStructure.totalLabel = v; });
@@ -785,7 +834,7 @@ function renderEditor() {
       ${field("Address", site.contact?.address, "textarea", "contact-address")}
       ${field("Phone", site.contact?.phone, "text", "contact-phone")}
       ${field("Email", site.contact?.email, "email", "contact-email")}`;
-    editor.appendChild(card);
+    ed().appendChild(card);
     bindField("contact-title", (v) => { site.contact.title = v; });
     bindField("contact-address", (v) => { site.contact.address = v; });
     bindField("contact-phone", (v) => { site.contact.phone = v; });
@@ -794,7 +843,7 @@ function renderEditor() {
     const card2 = document.createElement("div");
     card2.className = "card";
     card2.innerHTML = `<h3>Footer Partner Logos</h3>${field("Section title", site.footerPartners?.title, "text", "fp-title")}`;
-    editor.appendChild(card2);
+    ed().appendChild(card2);
     bindField("fp-title", (v) => { site.footerPartners.title = v; });
     card2.appendChild(listField("Logo", site.footerPartners.logos, [
       { key: "url", label: "Partner logo", type: "image", preset: "partnerLogo" },
@@ -820,7 +869,7 @@ function renderEditor() {
       <p class="card-desc">💡 <strong>@</strong> means root domain (nexusitacad.com). <strong>www</strong> is the www subdomain. Most registrars use @ for the root A record.</p>
     </div>
     <div id="domain-guide"></div>`;
-    editor.innerHTML = html;
+    ed().innerHTML = html;
 
     bindField("dom-name", (v) => { site.domain.customDomain = v; refreshDomainGuide(); });
     bindField("dom-ip", (v) => { site.domain.serverIp = v; refreshDomainGuide(); });
@@ -866,7 +915,7 @@ function renderEditor() {
       <label><span>Font preset</span><select id="font-preset">${fontOptions}</select></label>
       <p class="card-desc">Nexus live site uses Arsenal + Roboto Condensed. Prefer that preset for parity with nexusitacad.com.</p>
     </div>`;
-    editor.innerHTML = html;
+    ed().innerHTML = html;
 
     bindField("lock-fonts", (v) => { lockFontsOnThemeChange = v; });
 
@@ -951,19 +1000,17 @@ function renderEditor() {
   wireGotoAndLocalize();
 }
 
-function wireGotoAndLocalize() {
-  document.querySelectorAll("[data-goto]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      activeSection = btn.dataset.goto;
-      selectedCanvasSection = editorToCanvasId(activeSection);
-      if (ADVANCED_SECTIONS.some((s) => s.id === activeSection)) advancedOpen = true;
-      renderNav();
-      renderEditor();
-      highlightSectionInPreview(selectedCanvasSection);
-      closeMobileMenu();
-    });
-  });
+function openThemeSection(id) {
+  activeSection = id;
+  selectedCanvasSection = editorToCanvasId(id);
+  $("#theme-menu")?.classList.add("hidden");
+  renderSectionTree();
+  renderEditor();
+  highlightSectionInPreview(selectedCanvasSection);
+  $("#inspector-back")?.classList.remove("hidden");
+}
 
+function wireGotoAndLocalize() {
   $("#localize-images-btn")?.addEventListener("click", async () => {
     const btn = $("#localize-images-btn");
     btn.disabled = true;
@@ -1026,10 +1073,7 @@ async function saferReset() {
   const res = await api("/api/admin/reset", { method: "POST" });
   site = res.site;
   clearDirty();
-  activeSection = "canvas";
-  selectedCanvasSection = null;
-  renderNav();
-  renderEditor();
+  clearSelection();
   refreshPreview();
   showToast("Restored template defaults");
 }
@@ -1060,39 +1104,43 @@ function applySectionOrderFromCanvas(order) {
   markDirty();
   showToast("Section moved — click Save & Publish when ready");
   scheduleLivePreview();
-  if (activeSection === "canvas") renderEditor();
+  renderSectionTree();
 }
 
 function initPanelSplitter() {
-  const splitter = $("#panel-splitter");
   const body = $("#workspace-body");
-  if (!splitter || !body) return;
+  if (!body) return;
 
-  let dragging = false;
+  function bindSplitter(el, mode) {
+    if (!el) return;
+    let dragging = false;
+    el.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      el.classList.add("dragging");
+      el.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const rect = body.getBoundingClientRect();
+      if (mode === "tree") {
+        const width = Math.min(400, Math.max(200, e.clientX - rect.left));
+        body.style.setProperty("--tree-width", `${width}px`);
+      } else {
+        const width = Math.min(520, Math.max(260, rect.right - e.clientX));
+        body.style.setProperty("--inspector-width", `${width}px`);
+      }
+    });
+    const stop = () => {
+      dragging = false;
+      el.classList.remove("dragging");
+    };
+    el.addEventListener("pointerup", stop);
+    el.addEventListener("pointercancel", stop);
+  }
 
-  const onMove = (clientX) => {
-    if (!dragging) return;
-    const rect = body.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const width = Math.min(520, Math.max(240, x));
-    body.style.setProperty("--inspector-width", `${width}px`);
-  };
-
-  splitter.addEventListener("pointerdown", (e) => {
-    dragging = true;
-    splitter.classList.add("dragging");
-    splitter.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  });
-  splitter.addEventListener("pointermove", (e) => onMove(e.clientX));
-  splitter.addEventListener("pointerup", () => {
-    dragging = false;
-    splitter.classList.remove("dragging");
-  });
-  splitter.addEventListener("pointercancel", () => {
-    dragging = false;
-    splitter.classList.remove("dragging");
-  });
+  bindSplitter($("#tree-splitter"), "tree");
+  bindSplitter($("#panel-splitter"), "inspector");
 }
 
 function initCanvasResize() {
@@ -1134,12 +1182,17 @@ async function initApp() {
   $("#login-screen").classList.add("hidden");
   $("#app").classList.remove("hidden");
   previewVisible = true;
+  activeSection = "none";
+  selectedCanvasSection = null;
   clearDirty();
   setCanvasDevice(canvasDevice);
   initPanelSplitter();
   initCanvasResize();
-  renderNav();
+  renderSectionTree();
   renderEditor();
+  document.querySelectorAll("#theme-menu [data-goto]").forEach((btn) => {
+    btn.addEventListener("click", () => openThemeSection(btn.dataset.goto));
+  });
   syncLivePreview().catch(() => refreshPreview());
 }
 
@@ -1166,26 +1219,39 @@ $("#login-form").addEventListener("submit", async (e) => {
   }
 });
 
-$("#logout-btn").addEventListener("click", async () => {
+$("#logout-btn")?.addEventListener("click", async () => {
   if (isDirty && !confirm("You have unsaved changes. Logout anyway?")) return;
   await api("/api/admin/logout", { method: "POST" });
   location.reload();
 });
 
-$("#save-btn").addEventListener("click", () => saveSite().catch((e) => showToast(e.message, "error")));
-$("#reset-btn").addEventListener("click", () => saferReset().catch((e) => showToast(e.message, "error")));
-$("#export-btn")?.addEventListener("click", exportBackup);
+$("#save-btn")?.addEventListener("click", () => saveSite().catch((e) => showToast(e.message, "error")));
+$("#reset-btn")?.addEventListener("click", () => {
+  $("#theme-menu")?.classList.add("hidden");
+  saferReset().catch((e) => showToast(e.message, "error"));
+});
+$("#export-btn")?.addEventListener("click", () => {
+  $("#theme-menu")?.classList.add("hidden");
+  exportBackup();
+});
 
 $("#refresh-preview")?.addEventListener("click", () => {
   syncLivePreview().catch((e) => showToast(e.message, "error"));
 });
 
+$("#theme-menu-btn")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("#theme-menu")?.classList.toggle("hidden");
+});
+document.addEventListener("click", () => $("#theme-menu")?.classList.add("hidden"));
+$("#theme-menu")?.addEventListener("click", (e) => e.stopPropagation());
+
+$("#inspector-close")?.addEventListener("click", clearSelection);
+$("#inspector-back")?.addEventListener("click", clearSelection);
+
 document.querySelectorAll(".device-btn").forEach((btn) => {
   btn.addEventListener("click", () => setCanvasDevice(btn.dataset.device));
 });
-
-$("#menu-toggle")?.addEventListener("click", openMobileMenu);
-$("#sidebar-backdrop")?.addEventListener("click", closeMobileMenu);
 
 window.addEventListener("message", (e) => {
   const data = e.data || {};

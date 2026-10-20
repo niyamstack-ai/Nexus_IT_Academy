@@ -31,56 +31,69 @@
     </form>
   </div>
 
-  <div id="sidebar-backdrop" class="sidebar-backdrop hidden"></div>
-  <div id="app" class="app builder-app hidden">
-    <aside class="sidebar sidebar-slim" id="sidebar">
-      <div class="sidebar-brand">
-        <strong>Nexus</strong>
-        <span>Builder</span>
+  <div id="app" class="app shopify-shell hidden">
+    <header class="topbar shopify-topbar">
+      <div class="topbar-left">
+        <strong class="brand-mark">Nexus</strong>
+        <span class="topbar-page">Home page</span>
+        <span id="unsaved-badge" class="unsaved-badge hidden">Unsaved changes</span>
       </div>
-      <p class="sidebar-tip">Edit by clicking the website →</p>
-      <nav class="sidebar-nav" id="sidebar-nav"></nav>
-      <div class="sidebar-footer">
-        <button type="button" id="export-btn" class="btn btn-ghost btn-block">Export</button>
-        <a href="/" target="_blank" class="btn btn-ghost btn-block">Live ↗</a>
-        <button type="button" id="logout-btn" class="btn btn-ghost btn-block">Logout</button>
+      <div class="device-toggles" id="device-toggles" role="group" aria-label="Preview size">
+        <button type="button" class="btn btn-ghost btn-sm device-btn active" data-device="desktop">Desktop</button>
+        <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="tablet">Tablet</button>
+        <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="mobile">Mobile</button>
+        <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="custom">Custom</button>
       </div>
-    </aside>
-
-    <div class="workspace">
-      <header class="topbar">
-        <button type="button" id="menu-toggle" class="btn btn-secondary menu-toggle" aria-label="Open menu">Menu</button>
-        <div class="topbar-title-wrap">
-          <h2 id="panel-title">Website Builder</h2>
-          <p id="panel-desc" class="topbar-desc">Click a section on the right to edit · Drag ⋮⋮ to reorder</p>
-          <span id="unsaved-badge" class="unsaved-badge hidden">Unsaved changes</span>
-        </div>
-        <div class="device-toggles" id="device-toggles" role="group" aria-label="Preview size">
-          <button type="button" class="btn btn-ghost btn-sm device-btn active" data-device="desktop">Desktop</button>
-          <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="tablet">Tablet</button>
-          <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="mobile">Mobile</button>
-          <button type="button" class="btn btn-ghost btn-sm device-btn" data-device="custom" id="device-custom-btn" title="Drag the preview edge to set a custom width">Custom</button>
-        </div>
-        <div class="topbar-actions">
-          <button type="button" id="refresh-preview" class="btn btn-secondary">Refresh</button>
-          <button type="button" id="reset-btn" class="btn btn-secondary">Restore…</button>
-          <button type="button" id="save-btn" class="btn btn-primary">Save & Publish</button>
-        </div>
-      </header>
-
-      <div class="workspace-body builder-workspace" id="workspace-body" style="--inspector-width: 320px">
-        <aside class="inspector-panel" id="inspector-panel">
-          <main id="editor-panel" class="editor-panel"></main>
-        </aside>
-        <div class="panel-splitter" id="panel-splitter" title="Drag to resize panels" role="separator" aria-orientation="vertical"></div>
-        <section class="canvas-panel" id="preview-panel">
-          <div class="canvas-hint-bar">Drag the pink bar between panels · Drag the right edge of the preview to change width · On the page: click to edit, drag ⋮⋮ to move sections</div>
-          <div class="canvas-frame-wrap" id="canvas-frame-wrap" data-device="desktop">
-            <iframe id="preview-frame" src="/preview" title="Site canvas"></iframe>
-            <div class="canvas-resize-handle" id="canvas-resize-handle" title="Drag to resize preview width"></div>
+      <div class="topbar-actions">
+        <div class="theme-menu-wrap">
+          <button type="button" id="theme-menu-btn" class="btn btn-secondary">Theme settings ▾</button>
+          <div id="theme-menu" class="theme-menu hidden">
+            <button type="button" data-goto="themes">Themes & fonts</button>
+            <button type="button" data-goto="settings">Site settings</button>
+            <button type="button" data-goto="domain">Domain & go live</button>
+            <button type="button" id="export-btn">Export backup</button>
+            <a href="/" target="_blank" rel="noopener">View live site ↗</a>
+            <button type="button" id="reset-btn">Restore template…</button>
+            <button type="button" id="logout-btn">Logout</button>
           </div>
-        </section>
+        </div>
+        <button type="button" id="refresh-preview" class="btn btn-secondary">Refresh</button>
+        <button type="button" id="save-btn" class="btn btn-primary">Save</button>
       </div>
+    </header>
+
+    <div class="shopify-body" id="workspace-body" style="--tree-width: 280px; --inspector-width: 340px">
+      <aside class="section-tree-panel" id="section-tree-panel">
+        <div class="tree-header">
+          <h2>Sections</h2>
+          <p>Select a section to edit</p>
+        </div>
+        <nav class="section-tree" id="section-tree"></nav>
+      </aside>
+
+      <div class="panel-splitter panel-splitter-left" id="tree-splitter" title="Drag to resize" role="separator"></div>
+
+      <section class="canvas-panel" id="preview-panel">
+        <div class="canvas-hint-bar" id="canvas-hint">Select sections by tapping on them in the Preview</div>
+        <div class="canvas-frame-wrap" id="canvas-frame-wrap" data-device="desktop">
+          <iframe id="preview-frame" src="/preview" title="Site canvas"></iframe>
+          <div class="canvas-resize-handle" id="canvas-resize-handle" title="Drag to resize preview width"></div>
+        </div>
+      </section>
+
+      <div class="panel-splitter panel-splitter-right" id="panel-splitter" title="Drag to resize settings" role="separator"></div>
+
+      <aside class="inspector-panel inspector-right" id="inspector-panel">
+        <div class="inspector-header" id="inspector-header">
+          <button type="button" id="inspector-back" class="btn btn-ghost btn-sm hidden" title="Back">←</button>
+          <div class="inspector-titles">
+            <h2 id="panel-title">Settings</h2>
+            <p id="panel-desc" class="topbar-desc">Nothing selected</p>
+          </div>
+          <button type="button" id="inspector-close" class="btn btn-ghost btn-sm" title="Close">✕</button>
+        </div>
+        <main id="editor-panel" class="editor-panel"></main>
+      </aside>
     </div>
   </div>
 
